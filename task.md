@@ -1,9 +1,9 @@
 # VibeLog - 작업 체크리스트
 
-- [ ] **1단계: 기초 설정 및 구성** <!-- id: 0 -->
-    - [ ] Next.js 프로젝트 초기화 (App Router, TypeScript) <!-- id: 1 -->
-    - [ ] Tailwind CSS 테마 설정 (색상/폰트) <!-- id: 2 -->
-    - [ ] Supabase 클라이언트 및 SQL 테이블 설정 <!-- id: 3 -->
+- [/] **1단계: 기초 설정 및 구성** <!-- id: 0 -->
+    - [x] Next.js 프로젝트 초기화 (App Router, TypeScript) <!-- id: 1 -->
+    - [x] Tailwind CSS 테마 설정 (색상/폰트) <!-- id: 2 -->
+    - [x] Supabase 클라이언트 및 SQL 테이블 설정 <!-- id: 3 -->
 
 - [ ] **2단계: UI 컴포넌트 변환** <!-- id: 4 -->
     - [ ] UI 기본 요소 생성 (버튼, 카드 배지) <!-- id: 5 -->

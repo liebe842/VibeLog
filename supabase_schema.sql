@@ -1,70 +1,91 @@
--- Enable UUID extension
-create extension if not exists "uuid-ossp";
+-- Clean up existing tables if they exist (to ensure fresh start)
+drop table if exists public.notifications cascade;
+drop table if exists public.posts cascade;
+drop table if exists public.logs cascade; -- 'logs' table is removed/merged into posts
+drop table if exists public.activity_logs cascade; -- Handle potential old table name
+drop table if exists public.profiles cascade;
 
--- 1. PROFILES Table
-create table profiles (
+-- 1. Profiles Table
+-- Stores user information, statistics, and role.
+create table public.profiles (
   id uuid references auth.users not null primary key,
   username text unique not null,
   role text default 'user' check (role in ('user', 'admin')),
-  avatar_url text,
   level int default 1,
-  streak_count int default 0,
-  total_minutes int default 0,
+  pin text, -- [NEW] Security PIN for simple auth check or management
+  stats jsonb default '{"streak": 0, "total_logs": 0}'::jsonb,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- 2. ACTIVITY LOGS Table
-create table activity_logs (
-  id uuid default uuid_generate_v4() primary key,
-  user_id uuid references profiles(id) on delete cascade not null,
-  category text check (category in ('Coding', 'Study', 'Debug', 'Design')),
-  topic text not null,
-  duration_min int not null,
-  logged_at timestamp with time zone default timezone('utc'::text, now()) not null,
+-- Enable Row Level Security (RLS)
+alter table public.profiles enable row level security;
+
+-- Policies for Profiles
+create policy "Public profiles are viewable by everyone."
+  on public.profiles for select
+  using ( true );
+
+create policy "Users can update own profile."
+  on public.profiles for update
+  using ( auth.uid() = id );
+  
+-- 2. Posts Table (Merged with Activities)
+-- Stores both the feed content and the activity data (duration, category)
+create table public.posts (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references public.profiles(id) not null,
+  content text not null,               -- Content of the post
+  category text not null,              -- Activity Category: 'Coding', 'Study', 'Debug'
+  duration_min int default 0,          -- Activity duration in minutes
+  link_url text,                       -- [NEW] Link to the result/project
+  image_url text,                      -- [NEW] Screenshot or related image
+  likes int default 0,
+  comments_count int default 0,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- 3. FEED POSTS Table
-create table posts (
-  id uuid default uuid_generate_v4() primary key,
-  user_id uuid references profiles(id) on delete cascade not null,
-  content text not null,
-  type text default 'text' check (type in ('text', 'code', 'milestone')),
-  code_snippet text, -- JSON or text
-  language text,
-  likes_count int default 0,
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null
-);
+-- Enable RLS
+alter table public.posts enable row level security;
 
--- 4. NOTIFICATIONS Table
-create table notifications (
-  id uuid default uuid_generate_v4() primary key,
-  user_id uuid references profiles(id) on delete cascade not null, -- Receiver
-  sender_id uuid references profiles(id) on delete cascade,         -- Sender
-  type text check (type in ('like', 'comment', 'system')),
+-- Policies for Posts
+create policy "Posts are viewable by everyone."
+  on public.posts for select
+  using ( true );
+
+create policy "Users can insert their own posts."
+  on public.posts for insert
+  with check ( auth.uid() = user_id );
+
+-- 3. Notifications Table
+create table public.notifications (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references public.profiles(id) not null, -- Receiver
+  sender_id uuid references public.profiles(id) not null, -- Sender
+  type text check (type in ('like', 'comment')),
   message text not null,
   is_read boolean default false,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- RLS Policies (Row Level Security)
-alter table profiles enable row level security;
-alter table activity_logs enable row level security;
-alter table posts enable row level security;
-alter table notifications enable row level security;
+-- Enable RLS
+alter table public.notifications enable row level security;
 
--- Policies (Simple for MVP: Public Read, Auth Write)
-create policy "Public profiles are viewable by everyone" on profiles for select using (true);
-create policy "Users can insert their own profile" on profiles for insert with check (auth.uid() = id);
-create policy "Users can update own profile" on profiles for update using (auth.uid() = id);
+-- Policies for Notifications
+create policy "Users can view their own notifications."
+  on public.notifications for select
+  using ( auth.uid() = user_id );
 
-create policy "Logs are viewable by everyone" on activity_logs for select using (true);
-create policy "Users can insert own logs" on activity_logs for insert with check (auth.uid() = user_id);
+-- 4. Triggers (Optional but recommended for auto-profile creation)
+-- Automatically create a profile entry when a new user signs up via Supabase Auth
+create or replace function public.handle_new_user()
+returns trigger as $$
+begin
+  insert into public.profiles (id, username)
+  values (new.id, new.raw_user_meta_data->>'username');
+  return new;
+end;
+$$ language plpgsql security definer;
 
-create policy "Posts are viewable by everyone" on posts for select using (true);
-create policy "Users can insert posts" on posts for insert with check (auth.uid() = user_id);
-
-create policy "Users can see their own notifications" on notifications for select using (auth.uid() = user_id);
--- Note: Sender needs permission to insert notification for others. 
--- For now, allow authenticated users to insert notifications (server-side logic usually handles this, but for client-side triggering):
-create policy "Users can insert notifications" on notifications for insert with check (auth.role() = 'authenticated');
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute procedure public.handle_new_user();

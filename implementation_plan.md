@@ -58,6 +58,7 @@ interface Profile {
   username: string;        // "AlexDev"
   role: 'user' | 'admin';  // [NEW] 권한 구분
   level: number;           // 12
+  pin: string;             // [NEW] 관리용 PIN 번호
   stats: {
     streak: number;        // 12 (연속 달성일)
     total_logs: number;    // 82 (총 기록 수)
@@ -65,25 +66,31 @@ interface Profile {
 }
 ```
 
-### 활동 로그 (Activity Log - 잔디 데이터)
+### 포스트 & 활동 로그 (Posts & Activity Log - 통합됨)
 ```typescript
-interface ActivityLog {
+interface Post {
   id: string;
+  user_id: string;
+  content: string;         // "오늘의 챌린지 완료!"
   category: 'Coding' | 'Study' | 'Debug';
   duration_min: number;    // 45 (분 단위)
-  logged_at: string;       // ISO 날짜 문자열
+  link_url?: string;       // [NEW] 결과물 링크
+  image_url?: string;      // [NEW] 스크린샷 이미지
+  likes: number;
+  comments_count: number;
+  created_at: string;
 }
 ```
 
-### 알림 (Notification) [NEW]
+### 알림 (Notification)
 ```typescript
 interface Notification {
   id: string;
   user_id: string;         // 받는 사람
-  sender_id: string;       // 보낸 사람 (ex: 철수)
+  sender_id: string;       // 보낸 사람
   type: 'like' | 'comment';
-  message: string;         // "철수님이 회원님의 글을 좋아합니다."
-  is_read: boolean;        // 읽음 여부
+  message: string;
+  is_read: boolean;
   created_at: string;
 }
 ```
