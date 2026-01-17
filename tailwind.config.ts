@@ -11,13 +11,25 @@ const config: Config = {
     extend: {
       colors: {
         primary: "#2ea043",
-        "background-dark": "#0d1117",
-        "surface-dark": "#161b22",
-        "border-dark": "#30363d",
-        "text-primary": "#e6edf3",
-        "text-secondary": "#8b949e",
-        "github-bg": "#21262d",
-        "link-blue": "#58a6ff",
+        background: {
+          dark: "#0d1117",
+        },
+        surface: {
+          dark: "#161b22",
+        },
+        border: {
+          dark: "#30363d",
+        },
+        text: {
+          primary: "#e6edf3",
+          secondary: "#8b949e",
+        },
+        github: {
+          bg: "#21262d",
+        },
+        link: {
+          blue: "#58a6ff",
+        },
       },
       fontFamily: {
         display: ["var(--font-inter)", "sans-serif"],
