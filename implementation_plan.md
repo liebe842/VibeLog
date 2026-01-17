@@ -99,23 +99,24 @@ interface Notification {
 
 ## 3. 단계별 실행 계획 (Step-by-Step Execution Plan)
 
-### 1단계: 기초 설정 및 구성
+### ✅ 1단계: 기초 설정 및 구성 (완료)
 **목표**: 프로젝트를 초기화하고 DB 연결을 수립합니다.
-1. [ ] **Next.js 초기화**: App Router, TypeScript, Tailwind 포함.
-2. [ ] **Supabase 설정**: 프로젝트 생성 및 SQL 테이블(`profiles`, `logs`, `posts`, `notifications`) 생성.
-3. [ ] **테마 이식**: HTML 프로토타입의 색상/폰트를 `tailwind.config.ts` 복사.
-> **검토 포인트 (Review Point)**: 다크 모드가 정상 작동하는지, Supabase 클라이언트가 연결되는지 확인.
+1. [x] **Next.js 초기화**: App Router, TypeScript, Tailwind 포함.
+2. [x] **Supabase 설정**: 프로젝트 생성 및 SQL 테이블(`profiles`, `posts`, `notifications`) 생성. (**주의: `logs` 테이블은 `posts`로 통합됨**)
+3. [x] **테마 이식**: HTML 프로토타입의 색상/폰트를 `tailwind.config.ts` 복사.
+> **검토 완료**: Tailwind CSS 4.0 호환성 문제를 해결하고, Supabase 클라이언트 설정 완료.
 
-### 2단계: UI 컴포넌트 변환
+### ✅ 2단계: UI 컴포넌트 변환 (완료)
 **목표**: HTML 프로토타입을 재사용 가능한 React 컴포넌트로 변환합니다.
-1. [ ] **Atomic 디자인**: `Button`, `Card`, `Badge` 컴포넌트 생성.
-2. [ ] **레이아웃**: `Header`, `BottomNav` 및 활성 상태 구현.
-3. [ ] **페이지 구현**: 
-    - [ ] `Login` 페이지 UI
-    - [ ] `Admin` 대시보드 UI
-    - [ ] `Feed` 및 `Profile` 페이지 더미 데이터 구현
-    - [ ] `Notification` 팝업 UI
-> **검토 포인트 (Review Point)**: Next.js 페이지와 원본 HTML 파일의 디자인 일치 여부 확인.
+1. [x] **Atomic 디자인**: `Button`, `Card`, `Badge`, `Avatar` 컴포넌트 생성.
+2. [x] **레이아웃**: `Header`, `BottomNav` 및 활성 상태 구현.
+3. [x] **페이지 구현**: 
+    - [x] `Login` 페이지 UI
+    - [x] `Admin` 대시보드 UI
+    - [x] `Feed` 및 `Profile` 페이지 더미 데이터 구현
+    - [x] 프로필 `HeatmapGrid` (잔디 심기) 컴포넌트
+    - [ ] `Notification` 팝업 UI (3단계에서 구현 예정)
+> **검토 완료**: 모든 페이지가 정상적으로 렌더링되며, Material Symbols 아이콘이 적용됨. `class-variance-authority` 패키지를 사용한 variant 시스템 구축 완료.
 
 ### 3단계: 핵심 기능 및 인증 구현
 **목표**: 앱을 실제 작동하게 만듭니다.

@@ -10,9 +10,9 @@ drop table if exists public.profiles cascade;
 create table public.profiles (
   id uuid references auth.users not null primary key,
   username text unique not null,
+  email text unique not null,  -- [UPDATED] Email for whitelist (replaced PIN)
   role text default 'user' check (role in ('user', 'admin')),
   level int default 1,
-  pin text, -- [NEW] Security PIN for simple auth check or management
   stats jsonb default '{"streak": 0, "total_logs": 0}'::jsonb,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
@@ -77,11 +77,20 @@ create policy "Users can view their own notifications."
 
 -- 4. Triggers (Optional but recommended for auto-profile creation)
 -- Automatically create a profile entry when a new user signs up via Supabase Auth
+
+-- Drop existing trigger and function if they exist
+drop trigger if exists on_auth_user_created on auth.users;
+drop function if exists public.handle_new_user();
+
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
-  insert into public.profiles (id, username)
-  values (new.id, new.raw_user_meta_data->>'username');
+  insert into public.profiles (id, username, email)
+  values (
+    new.id, 
+    coalesce(new.raw_user_meta_data->>'name', split_part(new.email, '@', 1)),
+    new.email
+  );
   return new;
 end;
 $$ language plpgsql security definer;

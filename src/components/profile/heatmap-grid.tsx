@@ -3,10 +3,10 @@
 import { cn } from "@/lib/utils";
 
 interface HeatmapGridProps {
-  data?: {date: string; count: number}[];
+  activityByDate?: Record<string, number>;
 }
 
-export function HeatmapGrid({ data = [] }: HeatmapGridProps) {
+export function HeatmapGrid({ activityByDate = {} }: HeatmapGridProps) {
   // Generate last 12 weeks of dates
   const weeks = 12;
   const days = weeks * 7;
@@ -18,11 +18,11 @@ export function HeatmapGrid({ data = [] }: HeatmapGridProps) {
     date.setDate(date.getDate() - i);
     const dateStr = date.toISOString().split("T")[0];
     
-    // Find actual data or default to 0
-    const dayData = data.find((d) => d.date === dateStr);
+    // Use actual data from database
+    const count = activityByDate[dateStr] || 0;
     cells.push({
       date: dateStr,
-      count: dayData?.count || Math.floor(Math.random() * 5), // Dummy data for now
+      count,
     });
   }
 

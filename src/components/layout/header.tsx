@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { NotificationPopup } from "@/components/notifications/notification-popup";
 
 export function Header() {
   const pathname = usePathname();
@@ -40,12 +41,8 @@ export function Header() {
           </Link>
         </nav>
 
-        {/* Notification Bell */}
-        <button className="flex items-center justify-center h-10 w-10 rounded-full hover:bg-surface-dark transition-colors">
-          <span className="material-symbols-outlined text-text-secondary text-xl">
-            notifications
-          </span>
-        </button>
+        {/* Notification Popup */}
+        <NotificationPopup />
       </div>
     </header>
   );

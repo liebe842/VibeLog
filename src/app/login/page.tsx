@@ -1,69 +1,51 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+"use client";
+
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { loginWithGoogle } from "@/lib/actions/auth";
 
 export default function LoginPage() {
+  const handleGoogleLogin = async () => {
+    await loginWithGoogle();
+  };
+
   return (
-    <div className="container max-w-md mx-auto px-4 py-12">
-      <div className="text-center mb-8">
-        <h1 className="text-4xl font-bold mb-2">
-          <span className="text-primary">Vibe</span>
-          <span className="text-text-primary">Log</span>
-        </h1>
-        <p className="text-text-secondary">
-          개발자를 위한 코딩 챌린지 플랫폼
-        </p>
-      </div>
+    <div className="container max-w-md mx-auto px-4 py-20 relative min-h-screen flex items-center justify-center">
+      <div className="w-full max-w-md px-4">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-display font-bold text-text-primary mb-2">VibeLog</h1>
+          <p className="text-text-secondary">개발자의 코딩 바이브를 기록하세요</p>
+        </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>로그인</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form className="space-y-4">
-            <div>
-              <label
-                htmlFor="username"
-                className="block text-sm font-medium text-text-primary mb-2"
-              >
-                사용자 이름
-              </label>
-              <input
-                type="text"
-                id="username"
-                placeholder="VibeCoder"
-                className="w-full px-4 py-2 bg-background-dark border border-border-dark rounded-md text-text-primary placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-primary"
-              />
+        <Card className="border-border-dark bg-surface-dark/50 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="text-center">로그인</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="text-center text-sm text-text-secondary mb-4">
+              구글 계정으로 간편하게 시작하세요.<br/>
+              (승인된 사용자만 접속 가능합니다)
             </div>
-
-            <div>
-              <label
-                htmlFor="pin"
-                className="block text-sm font-medium text-text-primary mb-2"
-              >
-                PIN (4자리)
-              </label>
-              <input
-                type="password"
-                id="pin"
-                maxLength={4}
-                placeholder="****"
-                className="w-full px-4 py-2 bg-background-dark border border-border-dark rounded-md text-text-primary placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-primary text-center text-2xl tracking-widest"
+            
+            <Button 
+              className="w-full h-12 text-base font-medium flex items-center justify-center gap-2 bg-white text-black hover:bg-gray-100 border border-gray-300 transition-colors"
+              onClick={handleGoogleLogin}
+            >
+              <img 
+                src="https://www.svgrepo.com/show/475656/google-color.svg" 
+                alt="Google" 
+                className="w-5 h-5"
               />
-            </div>
-
-            <Button type="submit" fullWidth size="lg" className="mt-6">
-              로그인
+              Google로 계속하기
             </Button>
-          </form>
-        </CardContent>
-      </Card>
-
-      <p className="text-center text-sm text-text-secondary mt-6">
-        계정이 없으신가요?{" "}
-        <a href="/admin" className="text-primary hover:underline">
-          관리자에게 문의하세요
-        </a>
-      </p>
+          </CardContent>
+          <CardFooter className="justify-center border-t border-border-dark pt-6 mt-2">
+            <p className="text-xs text-text-secondary">
+              문의: 관리자에게 이메일 등록을 요청하세요
+            </p>
+          </CardFooter>
+        </Card>
+      </div>
     </div>
   );
 }
