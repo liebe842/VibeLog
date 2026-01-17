@@ -2,15 +2,20 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { motion } from "framer-motion";
 import { createPost } from "@/lib/actions/posts";
 
 export default function WritePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
+
+  const categories = [
+    { id: "Coding", icon: "code_blocks", color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
+    { id: "Study", icon: "menu_book", color: "bg-purple-500/20 text-purple-400 border-purple-500/30" },
+    { id: "Debug", icon: "bug_report", color: "bg-orange-500/20 text-orange-400 border-orange-500/30" },
+  ];
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -18,6 +23,7 @@ export default function WritePage() {
     setError("");
 
     const formData = new FormData(e.currentTarget);
+    formData.set("category", selectedCategory);
     const result = await createPost(formData);
 
     if (result.error) {
@@ -29,108 +35,125 @@ export default function WritePage() {
   }
 
   return (
-    <div className="container max-w-2xl mx-auto px-4 py-8">
-      <Card className="border-border-dark bg-surface-dark">
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>새 활동 기록</span>
-            <Button variant="secondary" size="sm" onClick={() => router.back()}>
-              취소
-            </Button>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Content */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-text-secondary">
-                내용 <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                name="content"
-                required
-                rows={4}
-                placeholder="오늘 무엇을 했나요? 배운 점이나 해결한 문제를 기록해보세요."
-                className="w-full px-3 py-2 bg-background-dark border border-border-dark rounded-md text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
-              />
-            </div>
+    <div className="min-h-screen bg-[#0d1117] pb-24">
+      {/* Header */}
+      <header className="flex items-center justify-between p-4 bg-[#0d1117] sticky top-0 z-20 backdrop-blur-md bg-opacity-90 border-b border-[#30363d]">
+        <button
+          onClick={() => router.back()}
+          className="flex w-10 h-10 shrink-0 items-center justify-center rounded-full hover:bg-[#161b22] transition-colors text-white"
+        >
+          <span className="material-symbols-outlined text-[24px]">close</span>
+        </button>
+        <h1 className="text-lg font-bold tracking-tight text-[#e6edf3]">New Log</h1>
+        <div className="w-10" />
+      </header>
 
-            {/* Category */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-text-secondary">
-                카테고리 <span className="text-red-500">*</span>
-              </label>
-              <div className="flex gap-3">
-                {["Coding", "Study", "Debug"].map((cat) => (
-                  <label
-                    key={cat}
-                    className="flex items-center gap-2 px-4 py-2 bg-background-dark border border-border-dark rounded-md cursor-pointer hover:border-primary/50 transition-colors"
-                  >
-                    <input
-                      type="radio"
-                      name="category"
-                      value={cat}
-                      required
-                      className="accent-primary"
-                    />
-                    <span className="text-text-primary">{cat}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
+      <motion.form
+        onSubmit={handleSubmit}
+        className="p-4 max-w-lg mx-auto space-y-6"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        {/* Content */}
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-[#8b949e] uppercase tracking-wider">
+            What did you work on?
+          </label>
+          <textarea
+            name="content"
+            required
+            rows={4}
+            placeholder="Describe your coding session, what you learned, or what you built..."
+            className="w-full px-4 py-3 bg-[#161b22] border border-[#30363d] rounded-xl text-[#e6edf3] placeholder:text-[#8b949e]/50 focus:outline-none focus:border-[#2ea043] focus:ring-1 focus:ring-[#2ea043] resize-none transition-all"
+          />
+        </div>
 
-            {/* Duration (Optional) */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-text-secondary">
-                소요 시간 (분) <span className="text-text-secondary text-xs">- 선택</span>
-              </label>
-              <input
-                type="number"
-                name="duration_min"
-                min="0"
-                placeholder="예: 45"
-                className="w-full px-3 py-2 bg-background-dark border border-border-dark rounded-md text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-            </div>
+        {/* Category */}
+        <div className="space-y-3">
+          <label className="text-xs font-semibold text-[#8b949e] uppercase tracking-wider">
+            Category
+          </label>
+          <div className="grid grid-cols-3 gap-3">
+            {categories.map((cat) => (
+              <motion.button
+                key={cat.id}
+                type="button"
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`p-4 rounded-xl border flex flex-col items-center gap-2 transition-all ${
+                  selectedCategory === cat.id
+                    ? `${cat.color} border-current`
+                    : "bg-[#161b22] border-[#30363d] text-[#8b949e] hover:border-[#8b949e]"
+                }`}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <span className="material-symbols-outlined text-[24px]">{cat.icon}</span>
+                <span className="text-xs font-medium">{cat.id}</span>
+              </motion.button>
+            ))}
+          </div>
+        </div>
 
-            {/* Link URL (Optional) */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-text-secondary">
-                링크 URL <span className="text-text-secondary text-xs">- 선택</span>
-              </label>
-              <input
-                type="url"
-                name="link_url"
-                placeholder="https://github.com/username/repo"
-                className="w-full px-3 py-2 bg-background-dark border border-border-dark rounded-md text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-            </div>
+        {/* Duration */}
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-[#8b949e] uppercase tracking-wider">
+            Duration (minutes) <span className="text-[#8b949e]/50">- Optional</span>
+          </label>
+          <input
+            type="number"
+            name="duration_min"
+            min="0"
+            placeholder="45"
+            className="w-full px-4 py-3 bg-[#161b22] border border-[#30363d] rounded-xl text-[#e6edf3] placeholder:text-[#8b949e]/50 focus:outline-none focus:border-[#2ea043] focus:ring-1 focus:ring-[#2ea043] transition-all"
+          />
+        </div>
 
-            {/* Image URL (Optional) */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-text-secondary">
-                이미지 URL <span className="text-text-secondary text-xs">- 선택</span>
-              </label>
-              <input
-                type="url"
-                name="image_url"
-                placeholder="https://example.com/screenshot.png"
-                className="w-full px-3 py-2 bg-background-dark border border-border-dark rounded-md text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-            </div>
+        {/* Link URL */}
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-[#8b949e] uppercase tracking-wider">
+            Link <span className="text-[#8b949e]/50">- Optional</span>
+          </label>
+          <input
+            type="url"
+            name="link_url"
+            placeholder="https://github.com/username/repo"
+            className="w-full px-4 py-3 bg-[#161b22] border border-[#30363d] rounded-xl text-[#e6edf3] placeholder:text-[#8b949e]/50 focus:outline-none focus:border-[#2ea043] focus:ring-1 focus:ring-[#2ea043] transition-all"
+          />
+        </div>
 
-            {error && (
-              <div className="p-3 bg-red-500/10 border border-red-500/50 rounded-md text-red-500 text-sm">
-                {error}
-              </div>
-            )}
+        {/* Error */}
+        {error && (
+          <motion.div
+            className="p-4 bg-red-500/10 border border-red-500/50 rounded-xl text-red-400 text-sm"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            {error}
+          </motion.div>
+        )}
 
-            <Button type="submit" disabled={loading} className="w-full" size="lg">
-              {loading ? "등록 중..." : "기록 등록"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+        {/* Submit Button */}
+        <motion.button
+          type="submit"
+          disabled={loading || !selectedCategory}
+          className="w-full bg-[#2ea043] hover:bg-[#2c974b] disabled:bg-[#2ea043]/50 disabled:cursor-not-allowed text-white font-bold py-4 px-6 rounded-xl shadow-lg shadow-[#2ea043]/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+          whileHover={{ scale: loading ? 1 : 1.02 }}
+          whileTap={{ scale: loading ? 1 : 0.98 }}
+        >
+          {loading ? (
+            <>
+              <span className="material-symbols-outlined animate-spin">sync</span>
+              Logging...
+            </>
+          ) : (
+            <>
+              <span className="material-symbols-outlined">check</span>
+              Log Activity
+            </>
+          )}
+        </motion.button>
+      </motion.form>
     </div>
   );
 }

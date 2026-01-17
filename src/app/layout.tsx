@@ -26,9 +26,9 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className={cn(inter.variable, jetbrainsMono.variable, "bg-background-dark font-display antialiased")}>
+      <body className={cn(inter.variable, jetbrainsMono.variable, "bg-[#0d1117] text-[#e6edf3] font-sans antialiased min-h-screen")}>
         <Header />
-        <main className="pb-16 md:pb-0">{children}</main>
+        <main className="pb-20">{children}</main>
         <BottomNav />
       </body>
     </html>

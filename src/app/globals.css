@@ -1,13 +1,45 @@
 @import "tailwindcss";
 
+/* Custom base styles for dark mode */
+:root {
+  --color-primary: #2ea043;
+  --color-background-dark: #0d1117;
+  --color-surface-dark: #161b22;
+  --color-border-dark: #30363d;
+  --color-text-primary: #e6edf3;
+  --color-text-secondary: #8b949e;
+  --color-github-bg: #21262d;
+  --color-link-blue: #58a6ff;
+}
+
+body {
+  background-color: var(--color-background-dark);
+  color: var(--color-text-primary);
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 /* Custom Utilities */
 .no-scrollbar::-webkit-scrollbar {
-    display: none;
+  display: none;
 }
 .no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 .pb-safe {
-    padding-bottom: env(safe-area-inset-bottom, 20px);
+  padding-bottom: env(safe-area-inset-bottom, 20px);
+}
+
+/* Focus ring for inputs */
+.input-focus-ring:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
+
+/* Glow effect for streak cells */
+.streak-glow {
+  box-shadow: 0 0 8px rgba(46, 160, 67, 0.4);
 }
