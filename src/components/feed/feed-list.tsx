@@ -156,11 +156,29 @@ export function FeedList({ posts, stats }: FeedListProps) {
                     <span className="text-[#8b949e] text-xs">{post.category} Path</span>
                   </div>
                 </div>
-                {post.duration_min > 0 && (
-                  <div className="border border-[#2ea043]/30 text-[#2ea043] text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
-                    {post.duration_min}분
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
+                    <button 
+                      className="text-[#8b949e] hover:text-[#58a6ff] transition-colors p-1"
+                      aria-label="Edit post"
+                      // onClick={() => onEdit?.(post)}
+                    >
+                      <span className="material-symbols-outlined text-[16px]">edit</span>
+                    </button>
+                    <button 
+                      className="text-[#8b949e] hover:text-[#f85149] transition-colors p-1"
+                      aria-label="Delete post"
+                      // onClick={() => onDelete?.(post)}
+                    >
+                      <span className="material-symbols-outlined text-[16px]">delete</span>
+                    </button>
                   </div>
-                )}
+                  {post.duration_min > 0 && (
+                    <div className="border border-[#2ea043]/30 text-[#2ea043] text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
+                      {post.duration_min}분
+                    </div>
+                  )}
+                </div>
               </div>
 
               <p className="text-[#e6edf3] text-sm leading-relaxed">{post.content}</p>
