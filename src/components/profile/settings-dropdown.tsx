@@ -3,7 +3,12 @@
 import { useState, useRef, useEffect } from "react";
 import { LogoutButton } from "@/components/auth/logout-button";
 
-export function SettingsDropdown() {
+interface SettingsDropdownProps {
+  onEditProfile?: () => void;
+  position?: "top" | "bottom";
+}
+
+export function SettingsDropdown({ onEditProfile, position = "top" }: SettingsDropdownProps = {}) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -36,7 +41,9 @@ export function SettingsDropdown() {
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute right-0 bottom-full mb-2 w-56 bg-[#161b22] border border-[#30363d] rounded-xl shadow-lg overflow-hidden z-50">
+        <div className={`absolute right-0 w-56 bg-[#161b22] border border-[#30363d] rounded-xl shadow-lg overflow-hidden z-50 ${
+          position === "bottom" ? "top-full mt-2" : "bottom-full mb-2"
+        }`}>
           {/* Menu Items */}
           <div className="py-2">
             {/* Profile Edit */}
@@ -44,8 +51,11 @@ export function SettingsDropdown() {
               className="w-full px-4 py-3 text-left text-sm text-[#e6edf3] hover:bg-[#21262d] transition-colors flex items-center gap-3"
               onClick={() => {
                 setIsOpen(false);
-                // TODO: Navigate to profile edit page
-                alert("프로필 편집 기능은 준비 중입니다.");
+                if (onEditProfile) {
+                  onEditProfile();
+                } else {
+                  alert("프로필 편집 기능은 준비 중입니다.");
+                }
               }}
             >
               <span className="material-symbols-outlined text-[20px] text-[#8b949e]">

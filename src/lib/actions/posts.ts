@@ -39,7 +39,7 @@ export async function createPost(formData: FormData) {
     return { error: error.message };
   }
 
-  // Update user stats
+  // Update user stats with streak calculation
   const { data: profile } = await supabase
     .from("profiles")
     .select("stats")
@@ -47,13 +47,36 @@ export async function createPost(formData: FormData) {
     .single();
 
   if (profile) {
-    const currentStats = profile.stats || { streak: 0, total_logs: 0 };
+    const currentStats = profile.stats || { streak: 0, last_activity_date: null };
+    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+    const lastActivityDate = currentStats.last_activity_date;
+
+    let newStreak = 1; // Default: first activity or reset
+
+    if (lastActivityDate) {
+      const lastDate = new Date(lastActivityDate);
+      const todayDate = new Date(today);
+      const diffDays = Math.floor((todayDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
+
+      if (diffDays === 0) {
+        // Same day - keep current streak
+        newStreak = currentStats.streak || 1;
+      } else if (diffDays === 1) {
+        // Consecutive day - increment streak
+        newStreak = (currentStats.streak || 0) + 1;
+      } else {
+        // Gap in days - reset streak to 1
+        newStreak = 1;
+      }
+    }
+
     await supabase
       .from("profiles")
       .update({
         stats: {
           ...currentStats,
-          total_logs: (currentStats.total_logs || 0) + 1,
+          streak: newStreak,
+          last_activity_date: today,
         },
       })
       .eq("id", user.id);
@@ -79,7 +102,8 @@ export async function getPosts(limit = 20, offset = 0) {
       *,
       profiles:user_id (
         username,
-        level
+        level,
+        avatar_url
       )
     `
     )
@@ -151,10 +175,34 @@ export async function deletePost(postId: string) {
     return { error: "본인의 포스트만 삭제할 수 있습니다." };
   }
 
+  // Delete related comments first
+  const { error: commentsError } = await supabase
+    .from("comments")
+    .delete()
+    .eq("post_id", postId);
+
+  if (commentsError) {
+    console.error("Comments deletion error:", commentsError);
+    return { error: "댓글 삭제 중 오류가 발생했습니다: " + commentsError.message };
+  }
+
+  // Delete related likes
+  const { error: likesError } = await supabase
+    .from("likes")
+    .delete()
+    .eq("post_id", postId);
+
+  if (likesError) {
+    console.error("Likes deletion error:", likesError);
+    return { error: "좋아요 삭제 중 오류가 발생했습니다: " + likesError.message };
+  }
+
+  // Now delete the post
   const { error } = await supabase.from("posts").delete().eq("id", postId);
 
   if (error) {
-    return { error: error.message };
+    console.error("Post deletion error:", error);
+    return { error: "게시물 삭제 중 오류가 발생했습니다: " + error.message };
   }
 
   revalidatePath("/");

@@ -12,9 +12,9 @@ export default function WritePage() {
   const [selectedCategory, setSelectedCategory] = useState("");
 
   const categories = [
-    { id: "Coding", icon: "code_blocks", color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
-    { id: "Study", icon: "menu_book", color: "bg-purple-500/20 text-purple-400 border-purple-500/30" },
-    { id: "Debug", icon: "bug_report", color: "bg-orange-500/20 text-orange-400 border-orange-500/30" },
+    { id: "Coding", label: "코딩", icon: "code_blocks", color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
+    { id: "Study", label: "공부", icon: "menu_book", color: "bg-purple-500/20 text-purple-400 border-purple-500/30" },
+    { id: "Debug", label: "디버그", icon: "bug_report", color: "bg-orange-500/20 text-orange-400 border-orange-500/30" },
   ];
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -44,7 +44,7 @@ export default function WritePage() {
         >
           <span className="material-symbols-outlined text-[24px]">close</span>
         </button>
-        <h1 className="text-lg font-bold tracking-tight text-[#e6edf3]">New Log</h1>
+        <h1 className="text-lg font-bold tracking-tight text-[#e6edf3]">활동 기록</h1>
         <div className="w-10" />
       </header>
 
@@ -58,13 +58,13 @@ export default function WritePage() {
         {/* Content */}
         <div className="space-y-2">
           <label className="text-xs font-semibold text-[#8b949e] uppercase tracking-wider">
-            What did you work on?
+            무엇을 작업했나요?
           </label>
           <textarea
             name="content"
             required
             rows={4}
-            placeholder="Describe your coding session, what you learned, or what you built..."
+            placeholder="오늘의 활동을 기록하세요..."
             className="w-full px-4 py-3 bg-[#161b22] border border-[#30363d] rounded-xl text-[#e6edf3] placeholder:text-[#8b949e]/50 focus:outline-none focus:border-[#2ea043] focus:ring-1 focus:ring-[#2ea043] resize-none transition-all"
           />
         </div>
@@ -72,7 +72,7 @@ export default function WritePage() {
         {/* Category */}
         <div className="space-y-3">
           <label className="text-xs font-semibold text-[#8b949e] uppercase tracking-wider">
-            Category
+            카테고리
           </label>
           <div className="grid grid-cols-3 gap-3">
             {categories.map((cat) => (
@@ -89,7 +89,7 @@ export default function WritePage() {
                 whileTap={{ scale: 0.98 }}
               >
                 <span className="material-symbols-outlined text-[24px]">{cat.icon}</span>
-                <span className="text-xs font-medium">{cat.id}</span>
+                <span className="text-xs font-medium">{cat.label}</span>
               </motion.button>
             ))}
           </div>
@@ -98,7 +98,7 @@ export default function WritePage() {
         {/* Duration */}
         <div className="space-y-2">
           <label className="text-xs font-semibold text-[#8b949e] uppercase tracking-wider">
-            Duration (minutes) <span className="text-[#8b949e]/50">- Optional</span>
+            소요 시간 (분) <span className="text-[#8b949e]/50">- 선택</span>
           </label>
           <input
             type="number"
@@ -112,12 +112,25 @@ export default function WritePage() {
         {/* Link URL */}
         <div className="space-y-2">
           <label className="text-xs font-semibold text-[#8b949e] uppercase tracking-wider">
-            Link <span className="text-[#8b949e]/50">- Optional</span>
+            링크 <span className="text-[#8b949e]/50">- 선택</span>
           </label>
           <input
             type="url"
             name="link_url"
             placeholder="https://github.com/username/repo"
+            className="w-full px-4 py-3 bg-[#161b22] border border-[#30363d] rounded-xl text-[#e6edf3] placeholder:text-[#8b949e]/50 focus:outline-none focus:border-[#2ea043] focus:ring-1 focus:ring-[#2ea043] transition-all"
+          />
+        </div>
+
+        {/* Image URL */}
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-[#8b949e] uppercase tracking-wider">
+            이미지 URL <span className="text-[#8b949e]/50">- 선택</span>
+          </label>
+          <input
+            type="url"
+            name="image_url"
+            placeholder="https://example.com/image.jpg"
             className="w-full px-4 py-3 bg-[#161b22] border border-[#30363d] rounded-xl text-[#e6edf3] placeholder:text-[#8b949e]/50 focus:outline-none focus:border-[#2ea043] focus:ring-1 focus:ring-[#2ea043] transition-all"
           />
         </div>
@@ -137,19 +150,19 @@ export default function WritePage() {
         <motion.button
           type="submit"
           disabled={loading || !selectedCategory}
-          className="w-full bg-[#2ea043] hover:bg-[#2c974b] disabled:bg-[#2ea043]/50 disabled:cursor-not-allowed text-white font-bold py-4 px-6 rounded-xl shadow-lg shadow-[#2ea043]/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+          className="w-full bg-gradient-to-r from-[#2ea043] to-[#3fb950] hover:from-[#25b060] hover:to-[#34a94b] disabled:from-[#2ea043]/50 disabled:to-[#3fb950]/50 disabled:cursor-not-allowed text-white font-bold py-4 px-6 rounded-xl shadow-lg shadow-[#2ea043]/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
           whileHover={{ scale: loading ? 1 : 1.02 }}
           whileTap={{ scale: loading ? 1 : 0.98 }}
         >
           {loading ? (
             <>
               <span className="material-symbols-outlined animate-spin">sync</span>
-              Logging...
+              기록 중...
             </>
           ) : (
             <>
               <span className="material-symbols-outlined">check</span>
-              Log Activity
+              활동 기록하기
             </>
           )}
         </motion.button>

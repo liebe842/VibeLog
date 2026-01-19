@@ -58,14 +58,19 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Protect /admin route
-  if (request.nextUrl.pathname.startsWith("/admin")) {
-    if (!user) {
-      // Not logged in, redirect to login
-      return NextResponse.redirect(new URL("/login", request.url));
-    }
+  // Public routes that don't require authentication
+  const publicRoutes = ["/login", "/auth/callback"];
+  const isPublicRoute = publicRoutes.some((route) =>
+    request.nextUrl.pathname.startsWith(route)
+  );
 
-    // Check if user has admin role
+  // Redirect to login if not authenticated (except for public routes)
+  if (!user && !isPublicRoute) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  // Additional admin role check for /admin route
+  if (request.nextUrl.pathname.startsWith("/admin") && user) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("role")
@@ -73,8 +78,8 @@ export async function middleware(request: NextRequest) {
       .single();
 
     if (profile?.role !== "admin") {
-      // Not an admin, redirect to home
-      return NextResponse.redirect(new URL("/", request.url));
+      // Not an admin, redirect to unauthorized page
+      return NextResponse.redirect(new URL("/unauthorized", request.url));
     }
   }
 

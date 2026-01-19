@@ -1,10 +1,14 @@
 import { getPosts } from "@/lib/actions/posts";
 import { getCurrentUserProfile } from "@/lib/actions/profile";
+import { calculateChallengeProgress } from "@/lib/actions/challenge";
 import { FeedList } from "@/components/feed/feed-list";
 
 export default async function HomePage() {
   const result = await getPosts(20);
   const posts = result.posts || [];
+
+  // Get challenge progress
+  const challengeProgress = await calculateChallengeProgress();
 
   // Try to get user stats if logged in
   let stats;
@@ -18,6 +22,8 @@ export default async function HomePage() {
         streak: profile.stats?.streak || 0,
         total_logs: profile.stats?.total_logs || 0,
         level: profile.level || 1,
+        challengeDay: challengeProgress.currentDay,
+        challengeTotal: challengeProgress.totalDays,
       };
     }
   } catch {

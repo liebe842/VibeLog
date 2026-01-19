@@ -2,15 +2,20 @@
 
 import { useState, useEffect } from "react";
 import { addUserToWhitelist, getAllUsers, deleteUser, updateUserRole } from "@/lib/actions/admin";
+import { createChallengeSettings, getActiveChallengeSettings } from "@/lib/actions/challenge";
 
 export default function AdminPage() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [challengeSuccess, setChallengeSuccess] = useState("");
+  const [challengeError, setChallengeError] = useState("");
+  const [currentChallenge, setCurrentChallenge] = useState<any>(null);
 
   useEffect(() => {
     loadUsers();
+    loadChallenge();
   }, []);
 
   async function loadUsers() {
@@ -22,6 +27,13 @@ export default function AdminPage() {
       setUsers(result.profiles || []);
     }
     setLoading(false);
+  }
+
+  async function loadChallenge() {
+    const result = await getActiveChallengeSettings();
+    if (result.challenge) {
+      setCurrentChallenge(result.challenge);
+    }
   }
 
   async function handleAddUser(e: React.FormEvent<HTMLFormElement>) {
@@ -38,6 +50,32 @@ export default function AdminPage() {
       setSuccess("사용자가 화이트리스트에 추가되었습니다!");
       e.currentTarget.reset();
       loadUsers();
+    }
+  }
+
+  async function handleCreateChallenge(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setChallengeError("");
+    setChallengeSuccess("");
+
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    const result = await createChallengeSettings(formData);
+
+    if (result.error) {
+      setChallengeError(result.error);
+    } else {
+      setChallengeSuccess("챌린지 일정이 설정되었습니다!");
+
+      // Update current challenge immediately with returned data
+      if (result.challenge) {
+        setCurrentChallenge(result.challenge);
+      } else {
+        loadChallenge();
+      }
+
+      // Reset form after state update
+      form.reset();
     }
   }
 
@@ -79,6 +117,75 @@ export default function AdminPage() {
 
       {/* Content */}
       <main className="max-w-6xl mx-auto p-4 md:p-6 lg:p-8 space-y-6">
+        {/* Challenge Settings */}
+        <div className="bg-[#161b22] rounded-xl border border-[#30363d] p-6">
+          <h2 className="text-xl font-bold text-[#e6edf3] mb-6">챌린지 일정 설정</h2>
+          
+          {currentChallenge && (
+            <div className="mb-4 p-4 bg-[#0d1117] rounded-lg border border-[#30363d]">
+              <p className="text-sm text-[#8b949e] mb-2">현재 활성 챌린지:</p>
+              <div className="grid grid-cols-3 gap-4 text-sm">
+                <div>
+                  <span className="text-[#8b949e]">시작일:</span>
+                  <span className="text-[#e6edf3] ml-2">{currentChallenge.start_date}</span>
+                </div>
+                <div>
+                  <span className="text-[#8b949e]">종료일:</span>
+                  <span className="text-[#e6edf3] ml-2">{currentChallenge.end_date}</span>
+                </div>
+                <div>
+                  <span className="text-[#8b949e]">기간:</span>
+                  <span className="text-[#e6edf3] ml-2">{currentChallenge.total_days}일</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <form onSubmit={handleCreateChallenge} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-[#8b949e]">시작일</label>
+                <input
+                  type="date"
+                  name="start_date"
+                  required
+                  className="w-full px-4 py-3 bg-[#0d1117] border border-[#30363d] rounded-lg text-[#e6edf3] focus:outline-none focus:border-[#2ea043] focus:ring-1 focus:ring-[#2ea043] transition-all"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-[#8b949e]">기간 (일)</label>
+                <input
+                  type="number"
+                  name="total_days"
+                  placeholder="30"
+                  min="1"
+                  required
+                  className="w-full px-4 py-3 bg-[#0d1117] border border-[#30363d] rounded-lg text-[#e6edf3] placeholder:text-[#8b949e]/50 focus:outline-none focus:border-[#2ea043] focus:ring-1 focus:ring-[#2ea043] transition-all"
+                />
+              </div>
+            </div>
+
+            {challengeError && (
+              <div className="p-4 bg-red-500/10 border border-red-500/50 rounded-lg text-red-400 text-sm">
+                {challengeError}
+              </div>
+            )}
+
+            {challengeSuccess && (
+              <div className="p-4 bg-[#2ea043]/10 border border-[#2ea043]/50 rounded-lg text-[#2ea043] text-sm">
+                {challengeSuccess}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              className="w-full bg-[#2ea043] hover:bg-[#2c974b] text-white font-bold py-3.5 px-6 rounded-xl shadow-lg shadow-[#2ea043]/20 active:scale-[0.98] transition-all"
+            >
+              챌린지 일정 설정
+            </button>
+          </form>
+        </div>
+
         {/* Registration Form */}
         <div className="bg-[#161b22] rounded-xl border border-[#30363d] p-6">
           <h2 className="text-xl font-bold text-[#e6edf3] mb-6">신규 사용자 등록 (화이트리스트 추가)</h2>

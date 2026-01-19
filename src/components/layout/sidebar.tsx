@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { getCurrentUserProfile } from "@/lib/actions/profile";
 import { getUnreadCount } from "@/lib/actions/notifications";
 import { SettingsDropdown } from "@/components/profile/settings-dropdown";
+import { ProfileEditModal } from "@/components/profile/profile-edit-modal";
 
 const navItems = [
   { href: "/", icon: "home", label: "피드" },
@@ -19,24 +20,30 @@ interface Profile {
   username: string;
   level: number;
   role: string;
+  bio?: string;
+  avatar_url?: string;
 }
 
 export function Sidebar() {
   const pathname = usePathname();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  async function loadProfile() {
+    const result = await getCurrentUserProfile();
+    if (result.profile) {
+      setProfile({
+        username: result.profile.username,
+        level: result.profile.level,
+        role: result.profile.role,
+        bio: result.profile.bio,
+        avatar_url: result.profile.avatar_url,
+      });
+    }
+  }
 
   useEffect(() => {
-    async function loadProfile() {
-      const result = await getCurrentUserProfile();
-      if (result.profile) {
-        setProfile({
-          username: result.profile.username,
-          level: result.profile.level,
-          role: result.profile.role,
-        });
-      }
-    }
     loadProfile();
   }, []);
 
@@ -53,6 +60,7 @@ export function Sidebar() {
   }, []);
 
   return (
+    <>
     <aside className="hidden md:flex md:flex-col md:w-64 lg:w-72 fixed left-0 top-0 h-screen bg-[#0d1117] border-r border-[#30363d] p-6">
       {/* Logo */}
       <div className="mb-8">
@@ -110,8 +118,12 @@ export function Sidebar() {
             {/* Avatar & Info */}
             <Link href="/profile" className="flex items-center gap-3 flex-1 min-w-0 group">
               <div className="relative">
-                <div className="w-10 h-10 rounded-full bg-[#21262d] border-2 border-[#30363d] flex items-center justify-center text-[#e6edf3] font-bold text-sm group-hover:border-[#2ea043] transition-all">
-                  {profile.username[0].toUpperCase()}
+                <div className="w-10 h-10 rounded-full bg-[#21262d] border-2 border-[#30363d] flex items-center justify-center text-[#e6edf3] font-bold text-sm group-hover:border-[#2ea043] transition-all overflow-hidden">
+                  {profile.avatar_url ? (
+                    <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover" />
+                  ) : (
+                    profile.username[0].toUpperCase()
+                  )}
                 </div>
                 <div className="absolute -bottom-0.5 -right-0.5 bg-[#2ea043] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full border border-[#0d1117]">
                   {profile.level}
@@ -129,11 +141,29 @@ export function Sidebar() {
 
             {/* Settings Icon */}
             <div className="shrink-0">
-              <SettingsDropdown />
+              <SettingsDropdown onEditProfile={() => setIsEditModalOpen(true)} />
             </div>
           </div>
         </div>
       )}
     </aside>
+
+    {/* Profile Edit Modal */}
+    {profile && (
+      <ProfileEditModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          // Reload profile after edit
+          loadProfile();
+        }}
+        currentProfile={{
+          username: profile.username,
+          bio: profile.bio,
+          avatar_url: profile.avatar_url,
+        }}
+      />
+    )}
+    </>
   );
 }

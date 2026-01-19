@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { createComment, deleteComment } from "@/lib/actions/comments";
+import { createComment, deleteComment, getComments } from "@/lib/actions/comments";
 import { useRouter } from "next/navigation";
 
 interface Comment {
@@ -50,9 +50,14 @@ export function CommentSection({ postId, comments: initialComments, currentUserI
       setIsSubmitting(false);
     } else {
       setContent("");
+
+      // Fetch latest comments from server
+      const commentsResult = await getComments(postId);
+      if (commentsResult.comments) {
+        setComments(commentsResult.comments as Comment[]);
+      }
+
       setIsSubmitting(false);
-      
-      // Refresh to get actual data from server immediately
       router.refresh();
     }
   }

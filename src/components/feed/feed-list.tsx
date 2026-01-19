@@ -7,6 +7,7 @@ import { deletePost, likePost } from "@/lib/actions/posts";
 import { getComments } from "@/lib/actions/comments";
 import { useRouter } from "next/navigation";
 import { CommentSection } from "@/components/comments/comment-section";
+import { PostEditModal } from "@/components/feed/post-edit-modal";
 
 interface Post {
   id: string;
@@ -23,6 +24,7 @@ interface Post {
   profiles?: {
     username: string;
     level?: number;
+    avatar_url?: string;
   };
 }
 
@@ -32,20 +34,40 @@ interface FeedListProps {
     streak: number;
     total_logs: number;
     level: number;
+    challengeDay?: number;
+    challengeTotal?: number;
   };
   currentUserId?: string;
 }
 
 const categoryColors: Record<string, string> = {
-  Coding: "bg-blue-500/20 text-blue-400",
-  Study: "bg-purple-500/20 text-purple-400",
-  Debug: "bg-orange-500/20 text-orange-400",
+  Coding: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+  Study: "bg-purple-500/20 text-purple-400 border-purple-500/30",
+  Debug: "bg-orange-500/20 text-orange-400 border-orange-500/30",
+};
+
+const categoryBorderColors: Record<string, string> = {
+  Coding: "border-l-blue-500",
+  Study: "border-l-purple-500",
+  Debug: "border-l-orange-500",
+};
+
+const categoryBadgeColors: Record<string, string> = {
+  Coding: "border-blue-500/30 text-blue-400 bg-blue-500/10",
+  Study: "border-purple-500/30 text-purple-400 bg-purple-500/10",
+  Debug: "border-orange-500/30 text-orange-400 bg-orange-500/10",
 };
 
 const categoryIcons: Record<string, string> = {
   Coding: "code_blocks",
   Study: "menu_book",
   Debug: "bug_report",
+};
+
+const categoryLabels: Record<string, string> = {
+  Coding: "코딩",
+  Study: "공부",
+  Debug: "디버그",
 };
 
 function formatTimeAgo(dateString: string) {
@@ -77,27 +99,30 @@ function ProgressCard({ stats }: { stats?: FeedListProps["stats"] }) {
   const streak = stats?.streak || 0;
   const totalLogs = stats?.total_logs || 0;
   const level = stats?.level || 1;
-  const progress = Math.min((streak / 30) * 100, 100);
+  const challengeDay = stats?.challengeDay || 0;
+  const challengeTotal = stats?.challengeTotal || 30;
+  // Use challengeTotal for progress calculation instead of hardcoded 30
+  const progress = Math.min((streak / challengeTotal) * 100, 100);
 
   return (
     <motion.section
-      className="bg-[#161b22] border border-[#30363d] rounded-md p-4 flex flex-col gap-4 shadow-sm"
+      className="bg-gradient-to-br from-[#161b22] to-[#1c2128] border border-[#30363d] rounded-md p-4 flex flex-col gap-4 shadow-sm"
       variants={itemVariants}
     >
       <div className="flex justify-between items-center">
-        <h2 className="text-[#e6edf3] text-sm font-semibold">Today's Progress</h2>
-        <span className="text-[#2ea043] text-xs font-mono bg-[#2ea043]/10 px-2 py-1 rounded">
-          Day {streak}/30
+        <h2 className="text-[#e6edf3] text-sm font-semibold">오늘의 진행상황</h2>
+        <span className="text-[#3fb950] text-xs font-mono bg-[#2ea043]/10 px-2 py-1 rounded border border-[#2ea043]/30">
+          {challengeDay}일차 / {challengeTotal}일
         </span>
       </div>
       <div className="flex flex-col gap-2">
         <div className="flex justify-between text-xs text-[#8b949e] mb-1">
-          <span>Level {level}: 코딩 챌린지</span>
+          <span>레벨 {level}: 코딩 챌린지</span>
           <span>{Math.round(progress)}%</span>
         </div>
         <div className="h-2 w-full bg-[#0d1117] rounded-full overflow-hidden border border-[#30363d]">
           <motion.div
-            className="h-full bg-[#2ea043] rounded-full"
+            className="h-full bg-gradient-to-r from-[#2ea043] to-[#3fb950] rounded-full"
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
             transition={{ duration: 1, ease: "easeOut" }}
@@ -107,11 +132,11 @@ function ProgressCard({ stats }: { stats?: FeedListProps["stats"] }) {
       <div className="grid grid-cols-2 gap-3 pt-2">
         <div className="bg-[#0d1117] rounded border border-[#30363d] p-3 flex flex-col items-center justify-center text-center">
           <span className="text-[#e6edf3] text-xl font-bold font-mono">{streak}</span>
-          <span className="text-[#8b949e] text-xs mt-1">Day Streak</span>
+          <span className="text-[#8b949e] text-xs mt-1">연속 일수</span>
         </div>
         <div className="bg-[#0d1117] rounded border border-[#30363d] p-3 flex flex-col items-center justify-center text-center">
           <span className="text-[#e6edf3] text-xl font-bold font-mono">{totalLogs}</span>
-          <span className="text-[#8b949e] text-xs mt-1">Challenges</span>
+          <span className="text-[#8b949e] text-xs mt-1">활동 기록</span>
         </div>
       </div>
     </motion.section>
@@ -123,6 +148,7 @@ export function FeedList({ posts, stats, currentUserId }: FeedListProps) {
   const [localPosts, setLocalPosts] = useState(posts);
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [commentsData, setCommentsData] = useState<Record<string, any[]>>({});
+  const [editingPost, setEditingPost] = useState<Post | null>(null);
 
   async function handleDelete(postId: string) {
     if (!confirm("정말 삭제하시겠습니까?")) return;
@@ -195,7 +221,7 @@ export function FeedList({ posts, stats, currentUserId }: FeedListProps) {
       <ProgressCard stats={stats} />
 
       <div className="flex flex-col gap-4">
-        <h3 className="text-[#e6edf3] text-sm font-semibold px-1">Community Activity</h3>
+        <h3 className="text-[#e6edf3] text-sm font-semibold px-1">커뮤니티 활동</h3>
 
         {localPosts.length === 0 ? (
           <motion.article
@@ -211,15 +237,19 @@ export function FeedList({ posts, stats, currentUserId }: FeedListProps) {
           localPosts.map((post) => (
             <motion.article
               key={post.id}
-              className="bg-[#161b22] border border-[#30363d] rounded-md p-4 flex flex-col gap-3"
+              className={`bg-[#161b22] border border-[#30363d] ${categoryBorderColors[post.category]} border-l-4 rounded-md p-4 flex flex-col gap-3`}
               variants={itemVariants}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-[#21262d] border border-[#30363d] flex items-center justify-center text-[#e6edf3] font-bold">
-                    {post.profiles?.username?.[0] || "U"}
+                  <div className="w-10 h-10 rounded-full bg-[#21262d] border border-[#30363d] flex items-center justify-center text-[#e6edf3] font-bold overflow-hidden">
+                    {post.profiles?.avatar_url ? (
+                      <img src={post.profiles.avatar_url} alt={post.profiles.username} className="w-full h-full object-cover" />
+                    ) : (
+                      post.profiles?.username?.[0] || "U"
+                    )}
                   </div>
-                  <div className="flex flex-col">
+                  <div className="flex flex-col gap-1.5">
                     <div className="flex items-center gap-2">
                       <span className="text-[#e6edf3] text-sm font-semibold">
                         {post.profiles?.username || "Unknown"}
@@ -227,34 +257,30 @@ export function FeedList({ posts, stats, currentUserId }: FeedListProps) {
                       <span className="w-1 h-1 bg-[#8b949e] rounded-full" />
                       <span className="text-[#8b949e] text-xs">{formatTimeAgo(post.created_at)}</span>
                     </div>
-                    <span className="text-[#8b949e] text-xs">{post.category} Path</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full border ${categoryBadgeColors[post.category] || "bg-[#8b949e]/10 text-[#8b949e] border-[#8b949e]/30"}`}>
+                      {categoryLabels[post.category] || post.category}
+                      {post.duration_min > 0 && ` (${post.duration_min}분)`}
+                    </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {currentUserId && currentUserId === post.user_id && (
-                    <div className="flex items-center gap-1">
-                      <button 
-                        onClick={() => alert("수정 기능은 준비 중입니다.")}
-                        className="text-[#8b949e] hover:text-[#58a6ff] transition-colors p-1"
-                        aria-label="Edit post"
-                      >
-                        <span className="material-symbols-outlined text-[16px]">edit</span>
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(post.id)}
-                        className="text-[#8b949e] hover:text-[#f85149] transition-colors p-1"
-                        aria-label="Delete post"
-                      >
-                        <span className="material-symbols-outlined text-[16px]">delete</span>
-                      </button>
-                    </div>
-                  )}
-                  {post.duration_min > 0 && (
-                    <div className="border border-[#2ea043]/30 text-[#2ea043] text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
-                      {post.duration_min}분
-                    </div>
-                  )}
-                </div>
+                {currentUserId && currentUserId === post.user_id && (
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setEditingPost(post)}
+                      className="text-[#8b949e] hover:text-[#58a6ff] transition-colors p-1"
+                      aria-label="Edit post"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">edit</span>
+                    </button>
+                    <button
+                      onClick={() => handleDelete(post.id)}
+                      className="text-[#8b949e] hover:text-[#f85149] transition-colors p-1"
+                      aria-label="Delete post"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">delete</span>
+                    </button>
+                  </div>
+                )}
               </div>
 
               <p className="text-[#e6edf3] text-sm leading-relaxed">{post.content}</p>
@@ -284,8 +310,8 @@ export function FeedList({ posts, stats, currentUserId }: FeedListProps) {
                   onClick={() => handleLike(post.id)}
                   className={`flex items-center gap-1.5 transition-colors group ${
                     post.liked_by_user
-                      ? "text-[#2ea043]"
-                      : "text-[#8b949e] hover:text-[#2ea043]"
+                      ? "text-[#3fb950]"
+                      : "text-[#8b949e] hover:text-[#3fb950]"
                   }`}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -297,18 +323,18 @@ export function FeedList({ posts, stats, currentUserId }: FeedListProps) {
                 </motion.button>
                 <motion.button
                   onClick={() => handleToggleComments(post.id)}
-                  className="flex items-center gap-1.5 text-[#8b949e] hover:text-[#e6edf3] transition-colors"
+                  className="flex items-center gap-1.5 text-[#8b949e] hover:text-[#58a6ff] transition-colors group"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <span className="material-symbols-outlined text-[18px]">chat_bubble</span>
+                  <span className="material-symbols-outlined text-[18px] group-hover:scale-110 transition-transform">chat_bubble</span>
                   <span className="text-xs font-medium">{post.comments_count || 0}</span>
                 </motion.button>
                 <motion.button
-                  className="ml-auto text-[#8b949e] hover:text-[#e6edf3] transition-colors"
+                  className="ml-auto text-[#8b949e] hover:text-[#f778ba] transition-colors group"
                   whileHover={{ scale: 1.1 }}
                 >
-                  <span className="material-symbols-outlined text-[18px]">share</span>
+                  <span className="material-symbols-outlined text-[18px] group-hover:scale-110 transition-transform">share</span>
                 </motion.button>
               </div>
 
@@ -324,6 +350,28 @@ export function FeedList({ posts, stats, currentUserId }: FeedListProps) {
           ))
         )}
       </div>
+
+      {/* Post Edit Modal */}
+      {editingPost && (
+        <PostEditModal
+          isOpen={!!editingPost}
+          onClose={() => {
+            setEditingPost(null);
+            // Refresh to get updated data from server
+            setTimeout(() => {
+              router.refresh();
+            }, 100);
+          }}
+          post={{
+            id: editingPost.id,
+            content: editingPost.content,
+            category: editingPost.category,
+            duration_min: editingPost.duration_min,
+            link_url: editingPost.link_url,
+            image_url: editingPost.image_url,
+          }}
+        />
+      )}
     </motion.div>
   );
 }
@@ -333,7 +381,7 @@ export function FloatingActionButton() {
     <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-40">
       <Link href="/write">
         <motion.button
-          className="bg-[#2ea043] hover:bg-[#25b060] text-[#0d1117] rounded-full w-12 h-12 flex items-center justify-center shadow-[0_0_15px_rgba(46,160,67,0.3)]"
+          className="bg-gradient-to-br from-[#2ea043] to-[#3fb950] hover:from-[#25b060] hover:to-[#34a94b] text-white rounded-full w-12 h-12 flex items-center justify-center shadow-[0_0_20px_rgba(46,160,67,0.4)]"
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
           initial={{ opacity: 0, scale: 0 }}
