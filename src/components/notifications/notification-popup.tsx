@@ -97,9 +97,9 @@ export function NotificationPopup() {
 
       {/* Popup */}
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-80 bg-surface-dark border border-border-dark rounded-lg shadow-lg z-50">
+        <div className="absolute left-0 right-0 bottom-full mb-2 max-h-96 bg-surface-dark border border-border-dark rounded-lg shadow-lg z-50 flex flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between p-3 border-b border-border-dark">
+          <div className="flex items-center justify-between p-3 border-b border-border-dark shrink-0">
             <h3 className="font-semibold text-text-primary">알림</h3>
             {unreadCount > 0 && (
               <Button variant="ghost" size="sm" onClick={handleMarkAllAsRead}>
@@ -109,7 +109,7 @@ export function NotificationPopup() {
           </div>
 
           {/* Content */}
-          <div className="max-h-80 overflow-y-auto">
+          <div className="overflow-y-auto flex-1">
             {loading ? (
               <div className="p-4 text-center text-text-secondary">로딩 중...</div>
             ) : notifications.length === 0 ? (

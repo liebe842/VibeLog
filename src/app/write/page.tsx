@@ -50,7 +50,7 @@ export default function WritePage() {
 
       <motion.form
         onSubmit={handleSubmit}
-        className="p-4 max-w-lg mx-auto space-y-6"
+        className="p-4 md:p-6 lg:p-8 max-w-lg md:max-w-2xl lg:max-w-3xl mx-auto space-y-6"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}

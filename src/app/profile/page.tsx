@@ -1,7 +1,7 @@
 import { getCurrentUserProfile, getUserActivityHeatmap, getUserRecentActivities } from "@/lib/actions/profile";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { LogoutButton } from "@/components/auth/logout-button";
+import { SettingsDropdown } from "@/components/profile/settings-dropdown";
 
 const categoryColors: Record<string, string> = {
   Coding: "bg-blue-500/20 text-blue-400",
@@ -39,24 +39,30 @@ export default async function ProfilePage() {
   const activitiesResult = await getUserRecentActivities(profile.id, 5);
   const recentActivities = activitiesResult.posts || [];
 
-  // Generate streak grid data (last 14 days)
+  // Get actual activity heatmap data
+  const heatmapResult = await getUserActivityHeatmap(profile.id);
+  const activityByDate = heatmapResult.activityByDate || {};
+
+  // Generate streak grid data (last 14 days) with real data
   const streakDays = Array.from({ length: 14 }, (_, i) => {
     const date = new Date();
     date.setDate(date.getDate() - (13 - i));
-    return { date, hasActivity: Math.random() > 0.3 }; // Simulated for now
+    const dateStr = date.toISOString().split("T")[0];
+    return { 
+      date, 
+      hasActivity: (activityByDate[dateStr] || 0) > 0 
+    };
   });
 
   return (
-    <div className="relative flex min-h-screen w-full max-w-md mx-auto flex-col bg-[#0d1117] pb-24 overflow-x-hidden">
+    <div className="relative flex min-h-screen w-full max-w-md md:max-w-2xl lg:max-w-3xl mx-auto flex-col bg-[#0d1117] pb-24 md:pb-8 overflow-x-hidden">
       {/* Header */}
       <header className="flex items-center justify-between p-4 bg-[#0d1117] sticky top-0 z-20 backdrop-blur-md bg-opacity-90">
         <button className="flex w-10 h-10 shrink-0 items-center justify-center rounded-full hover:bg-[#161b22] transition-colors text-white">
           <span className="material-symbols-outlined text-[24px]">arrow_back</span>
         </button>
         <h1 className="text-lg font-bold tracking-tight text-[#e6edf3]">My Status</h1>
-        <button className="flex w-10 h-10 shrink-0 items-center justify-center rounded-full hover:bg-[#161b22] transition-colors text-white">
-          <span className="material-symbols-outlined text-[24px]">settings</span>
-        </button>
+        <SettingsDropdown />
       </header>
 
       {/* Profile Card */}
@@ -132,18 +138,7 @@ export default async function ProfilePage() {
         </div>
       </section>
 
-      {/* Log Activity Button */}
-      <div className="px-4 mb-8">
-        <Link href="/write">
-          <button className="w-full bg-[#2ea043] hover:bg-[#2c974b] text-white font-bold py-3.5 px-6 rounded-xl shadow-lg shadow-[#2ea043]/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
-            <span className="material-symbols-outlined">add</span>
-            Log Today's Activity
-          </button>
-        </Link>
-        <div className="mt-3">
-          <LogoutButton />
-        </div>
-      </div>
+
 
       {/* History Section */}
       <section className="flex flex-col px-4 gap-6">

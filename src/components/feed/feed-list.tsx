@@ -1,7 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { deletePost, likePost } from "@/lib/actions/posts";
+import { getComments } from "@/lib/actions/comments";
+import { useRouter } from "next/navigation";
+import { CommentSection } from "@/components/comments/comment-section";
 
 interface Post {
   id: string;
@@ -13,6 +18,8 @@ interface Post {
   likes: number;
   comments_count: number;
   created_at: string;
+  user_id: string;
+  liked_by_user?: boolean;
   profiles?: {
     username: string;
     level?: number;
@@ -26,6 +33,7 @@ interface FeedListProps {
     total_logs: number;
     level: number;
   };
+  currentUserId?: string;
 }
 
 const categoryColors: Record<string, string> = {
@@ -110,7 +118,73 @@ function ProgressCard({ stats }: { stats?: FeedListProps["stats"] }) {
   );
 }
 
-export function FeedList({ posts, stats }: FeedListProps) {
+export function FeedList({ posts, stats, currentUserId }: FeedListProps) {
+  const router = useRouter();
+  const [localPosts, setLocalPosts] = useState(posts);
+  const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
+  const [commentsData, setCommentsData] = useState<Record<string, any[]>>({});
+
+  async function handleDelete(postId: string) {
+    if (!confirm("정말 삭제하시겠습니까?")) return;
+
+    const result = await deletePost(postId);
+    if (result.error) {
+      alert(result.error);
+    } else {
+      // Optimistically remove from UI
+      setLocalPosts((prev) => prev.filter((p) => p.id !== postId));
+      router.refresh();
+    }
+  }
+
+  async function handleLike(postId: string) {
+    const post = localPosts.find((p) => p.id === postId);
+    if (!post) return;
+
+    const wasLiked = post.liked_by_user;
+
+    // Optimistic update
+    setLocalPosts((prev) =>
+      prev.map((p) =>
+        p.id === postId
+          ? {
+              ...p,
+              likes: wasLiked ? p.likes - 1 : p.likes + 1,
+              liked_by_user: !wasLiked,
+            }
+          : p
+      )
+    );
+
+    const result = await likePost(postId);
+    if (result.error) {
+      alert(result.error);
+      // Revert on error
+      setLocalPosts(posts);
+    } else {
+      router.refresh();
+    }
+  }
+
+  async function handleToggleComments(postId: string) {
+    const newExpanded = new Set(expandedComments);
+    
+    if (newExpanded.has(postId)) {
+      newExpanded.delete(postId);
+    } else {
+      newExpanded.add(postId);
+      // Load comments if not already loaded
+      if (!commentsData[postId]) {
+        const result = await getComments(postId);
+        if (result.comments) {
+          setCommentsData((prev) => ({ ...prev, [postId]: result.comments || [] }));
+        }
+      }
+    }
+    
+    setExpandedComments(newExpanded);
+  }
+
   return (
     <motion.div
       className="flex flex-col gap-6"
@@ -123,7 +197,7 @@ export function FeedList({ posts, stats }: FeedListProps) {
       <div className="flex flex-col gap-4">
         <h3 className="text-[#e6edf3] text-sm font-semibold px-1">Community Activity</h3>
 
-        {posts.length === 0 ? (
+        {localPosts.length === 0 ? (
           <motion.article
             className="bg-[#161b22] border border-[#30363d] rounded-md p-6 text-center"
             variants={itemVariants}
@@ -134,7 +208,7 @@ export function FeedList({ posts, stats }: FeedListProps) {
             </Link>
           </motion.article>
         ) : (
-          posts.map((post) => (
+          localPosts.map((post) => (
             <motion.article
               key={post.id}
               className="bg-[#161b22] border border-[#30363d] rounded-md p-4 flex flex-col gap-3"
@@ -157,22 +231,24 @@ export function FeedList({ posts, stats }: FeedListProps) {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1">
-                    <button 
-                      className="text-[#8b949e] hover:text-[#58a6ff] transition-colors p-1"
-                      aria-label="Edit post"
-                      // onClick={() => onEdit?.(post)}
-                    >
-                      <span className="material-symbols-outlined text-[16px]">edit</span>
-                    </button>
-                    <button 
-                      className="text-[#8b949e] hover:text-[#f85149] transition-colors p-1"
-                      aria-label="Delete post"
-                      // onClick={() => onDelete?.(post)}
-                    >
-                      <span className="material-symbols-outlined text-[16px]">delete</span>
-                    </button>
-                  </div>
+                  {currentUserId && currentUserId === post.user_id && (
+                    <div className="flex items-center gap-1">
+                      <button 
+                        onClick={() => alert("수정 기능은 준비 중입니다.")}
+                        className="text-[#8b949e] hover:text-[#58a6ff] transition-colors p-1"
+                        aria-label="Edit post"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">edit</span>
+                      </button>
+                      <button 
+                        onClick={() => handleDelete(post.id)}
+                        className="text-[#8b949e] hover:text-[#f85149] transition-colors p-1"
+                        aria-label="Delete post"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">delete</span>
+                      </button>
+                    </div>
+                  )}
                   {post.duration_min > 0 && (
                     <div className="border border-[#2ea043]/30 text-[#2ea043] text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
                       {post.duration_min}분
@@ -205,16 +281,22 @@ export function FeedList({ posts, stats }: FeedListProps) {
 
               <div className="flex items-center gap-6 pt-2 border-t border-[#30363d]/50 mt-1">
                 <motion.button
-                  className="flex items-center gap-1.5 text-[#8b949e] hover:text-[#2ea043] transition-colors group"
+                  onClick={() => handleLike(post.id)}
+                  className={`flex items-center gap-1.5 transition-colors group ${
+                    post.liked_by_user
+                      ? "text-[#2ea043]"
+                      : "text-[#8b949e] hover:text-[#2ea043]"
+                  }`}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
                   <span className="material-symbols-outlined text-[18px] group-hover:scale-110 transition-transform">
-                    thumb_up
+                    {post.liked_by_user ? "thumb_up" : "thumb_up"}
                   </span>
                   <span className="text-xs font-medium">{post.likes || 0}</span>
                 </motion.button>
                 <motion.button
+                  onClick={() => handleToggleComments(post.id)}
                   className="flex items-center gap-1.5 text-[#8b949e] hover:text-[#e6edf3] transition-colors"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -229,6 +311,15 @@ export function FeedList({ posts, stats }: FeedListProps) {
                   <span className="material-symbols-outlined text-[18px]">share</span>
                 </motion.button>
               </div>
+
+              {/* Comments Section */}
+              {expandedComments.has(post.id) && (
+                <CommentSection
+                  postId={post.id}
+                  comments={commentsData[post.id] || []}
+                  currentUserId={currentUserId}
+                />
+              )}
             </motion.article>
           ))
         )}

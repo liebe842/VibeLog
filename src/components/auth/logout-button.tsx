@@ -2,10 +2,26 @@
 
 import { logout } from "@/lib/actions/auth";
 
-export function LogoutButton() {
+interface LogoutButtonProps {
+  variant?: "default" | "dropdown";
+}
+
+export function LogoutButton({ variant = "default" }: LogoutButtonProps) {
   const handleLogout = async () => {
     await logout();
   };
+
+  if (variant === "dropdown") {
+    return (
+      <button
+        onClick={handleLogout}
+        className="w-full px-4 py-3 text-left text-sm text-red-400 hover:bg-[#21262d] rounded-lg transition-colors flex items-center gap-3"
+      >
+        <span className="material-symbols-outlined text-[20px]">logout</span>
+        <span>로그아웃</span>
+      </button>
+    );
+  }
 
   return (
     <button

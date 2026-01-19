@@ -4,6 +4,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Header } from "@/components/layout/header";
 import { BottomNav } from "@/components/layout/bottom-nav";
+import { Sidebar } from "@/components/layout/sidebar";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains" });
@@ -27,9 +28,23 @@ export default function RootLayout({
         />
       </head>
       <body className={cn(inter.variable, jetbrainsMono.variable, "bg-[#0d1117] text-[#e6edf3] font-sans antialiased min-h-screen")}>
-        <Header />
-        <main className="pb-20">{children}</main>
-        <BottomNav />
+        {/* Desktop Sidebar */}
+        <Sidebar />
+        
+        {/* Mobile Header */}
+        <div className="md:hidden">
+          <Header />
+        </div>
+
+        {/* Main Content */}
+        <main className="pb-20 md:pb-0 md:ml-64 lg:ml-72">
+          {children}
+        </main>
+
+        {/* Mobile Bottom Navigation */}
+        <div className="md:hidden">
+          <BottomNav />
+        </div>
       </body>
     </html>
   );

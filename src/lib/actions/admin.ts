@@ -33,34 +33,20 @@ export async function addUserToWhitelist(formData: FormData) {
     return { error: "관리자 권한이 필요합니다." };
   }
 
-  // Insert into profiles (whitelist)
-  // Note: This creates a "pre-registration" entry
-  // The user doesn't exist in auth.users yet
-  // When they login with Google, the trigger will try to insert but fail on duplicate email
-  // So we need a different approach: just store their info and check on login
-  
-  // Actually, let's use a simpler approach:
-  // We'll insert a profile with a dummy UUID for now
-  // When user logs in, we'll update it with their real auth ID
-  
-  const { error } = await supabase.from("profiles").insert({
-    // We need to generate a temporary ID or use email as unique identifier
-    // Better approach: create without id, let trigger handle it on first login
-    // But trigger needs auth.users record first...
-    
-    // REVISED: We'll just store username, email, role
-    // And rely on trigger to create profile on login
-    // But we need a way to set the role...
-    
-    // BEST APPROACH: Insert with a placeholder UUID
-    // When user logs in, check if email matches, update the UUID
-    id: crypto.randomUUID(), // Temporary, will be replaced on first login
-    username,
+  // Insert into whitelist table (not profiles)
+  // When user logs in, they will be automatically added to profiles
+  const { error } = await supabase.from("whitelist").insert({
     email,
+    username,
     role: role || "user",
+    approved_by: user.id,
   });
 
   if (error) {
+    // Check if email already exists
+    if (error.code === "23505") {
+      return { error: "이미 등록된 이메일입니다." };
+    }
     return { error: error.message };
   }
 

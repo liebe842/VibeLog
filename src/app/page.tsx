@@ -8,10 +8,12 @@ export default async function HomePage() {
 
   // Try to get user stats if logged in
   let stats;
+  let currentUserId;
   try {
     const profileResult = await getCurrentUserProfile();
     if (profileResult.profile) {
       const profile = profileResult.profile;
+      currentUserId = profile.id;
       stats = {
         streak: profile.stats?.streak || 0,
         total_logs: profile.stats?.total_logs || 0,
@@ -23,8 +25,8 @@ export default async function HomePage() {
   }
 
   return (
-    <main className="flex flex-col gap-6 p-4 max-w-lg mx-auto w-full pb-24">
-      <FeedList posts={posts} stats={stats} />
+    <main className="flex flex-col gap-6 p-4 md:p-6 lg:p-8 max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto w-full pb-24 md:pb-8">
+      <FeedList posts={posts} stats={stats} currentUserId={currentUserId} />
     </main>
   );
 }

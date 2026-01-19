@@ -67,6 +67,11 @@ export async function createPost(formData: FormData) {
 export async function getPosts(limit = 20, offset = 0) {
   const supabase = await createClient();
 
+  // Get current user if logged in
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   const { data: posts, error } = await supabase
     .from("posts")
     .select(
@@ -83,6 +88,26 @@ export async function getPosts(limit = 20, offset = 0) {
 
   if (error) {
     return { error: error.message };
+  }
+
+  // If user is logged in, check which posts they liked
+  if (user && posts) {
+    const postIds = posts.map((p) => p.id);
+    const { data: likes } = await supabase
+      .from("likes")
+      .select("post_id")
+      .eq("user_id", user.id)
+      .in("post_id", postIds);
+
+    const likedPostIds = new Set(likes?.map((l) => l.post_id) || []);
+
+    const postsWithLikeStatus = posts.map((post) => ({
+      ...post,
+      liked_by_user: likedPostIds.has(post.id),
+      likes: post.likes_count || post.likes || 0, // Use likes_count if available
+    }));
+
+    return { posts: postsWithLikeStatus };
   }
 
   return { posts };
@@ -127,6 +152,109 @@ export async function deletePost(postId: string) {
   }
 
   const { error } = await supabase.from("posts").delete().eq("id", postId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/");
+  revalidatePath("/profile");
+  return { success: true };
+}
+
+export async function likePost(postId: string) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "로그인이 필요합니다." };
+  }
+
+  // Check if user already liked this post
+  const { data: existingLike } = await supabase
+    .from("likes")
+    .select("*")
+    .eq("user_id", user.id)
+    .eq("post_id", postId)
+    .single();
+
+  if (existingLike) {
+    // Unlike (remove like)
+    const { error } = await supabase
+      .from("likes")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("post_id", postId);
+
+    if (error) {
+      return { error: error.message };
+    }
+
+    revalidatePath("/");
+    return { success: true, liked: false };
+  } else {
+    // Like (add like)
+    const { error } = await supabase
+      .from("likes")
+      .insert({
+        user_id: user.id,
+        post_id: postId,
+      });
+
+    if (error) {
+      return { error: error.message };
+    }
+
+    revalidatePath("/");
+    return { success: true, liked: true };
+  }
+}
+
+export async function updatePost(postId: string, formData: FormData) {
+  const content = formData.get("content") as string;
+  const category = formData.get("category") as string;
+  const durationMin = formData.get("duration_min") as string;
+  const linkUrl = formData.get("link_url") as string;
+  const imageUrl = formData.get("image_url") as string;
+
+  if (!content || !category) {
+    return { error: "내용과 카테고리는 필수입니다." };
+  }
+
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "로그인이 필요합니다." };
+  }
+
+  // Check if current user owns the post
+  const { data: post } = await supabase
+    .from("posts")
+    .select("user_id")
+    .eq("id", postId)
+    .single();
+
+  if (post?.user_id !== user.id) {
+    return { error: "본인의 포스트만 수정할 수 있습니다." };
+  }
+
+  const { error } = await supabase
+    .from("posts")
+    .update({
+      content,
+      category,
+      duration_min: durationMin ? parseInt(durationMin) : 0,
+      link_url: linkUrl || null,
+      image_url: imageUrl || null,
+    })
+    .eq("id", postId);
 
   if (error) {
     return { error: error.message };
