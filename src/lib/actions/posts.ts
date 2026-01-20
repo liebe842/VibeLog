@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { updateStreak } from "./profile";
 
 export async function createPost(formData: FormData) {
   const content = formData.get("content") as string;
@@ -9,6 +10,7 @@ export async function createPost(formData: FormData) {
   const durationMin = formData.get("duration_min") as string;
   const linkUrl = formData.get("link_url") as string;
   const imageUrl = formData.get("image_url") as string;
+  const projectId = formData.get("project_id") as string;
 
   if (!content || !category) {
     return { error: "내용과 카테고리는 필수입니다." };
@@ -33,6 +35,7 @@ export async function createPost(formData: FormData) {
     duration_min: durationMin ? parseInt(durationMin) : 0,
     link_url: linkUrl || null,
     image_url: imageUrl || null,
+    project_id: projectId || null,
   });
 
   if (error) {
@@ -104,6 +107,10 @@ export async function getPosts(limit = 20, offset = 0) {
         username,
         level,
         avatar_url
+      ),
+      projects:project_id (
+        id,
+        title
       )
     `
     )
@@ -111,8 +118,11 @@ export async function getPosts(limit = 20, offset = 0) {
     .range(offset, offset + limit - 1);
 
   if (error) {
+    console.error("[getPosts] Error:", error);
     return { error: error.message };
   }
+
+  console.log(`[getPosts] Found ${posts?.length || 0} posts`);
 
   // If user is logged in, check which posts they liked
   if (user && posts) {
@@ -204,6 +214,9 @@ export async function deletePost(postId: string) {
     console.error("Post deletion error:", error);
     return { error: "게시물 삭제 중 오류가 발생했습니다: " + error.message };
   }
+
+  // Recalculate streak after deletion
+  await updateStreak(user.id);
 
   revalidatePath("/");
   revalidatePath("/profile");

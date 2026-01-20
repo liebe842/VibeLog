@@ -11,7 +11,6 @@ import { ProfileEditModal } from "@/components/profile/profile-edit-modal";
 const navItems = [
   { href: "/", icon: "home", label: "피드" },
   { href: "/projects", icon: "folder", label: "프로젝트" },
-  { href: "/write", icon: "edit_square", label: "글쓰기" },
   { href: "/notifications", icon: "notifications", label: "알림", showBadge: true },
   { href: "/profile", icon: "person", label: "프로필" },
   { href: "/admin", icon: "admin_panel_settings", label: "관리자" },
@@ -64,7 +63,7 @@ export function Sidebar() {
     <>
     <aside className="hidden md:flex md:flex-col md:w-64 lg:w-72 fixed left-0 top-0 h-screen bg-[#0d1117] border-r border-[#30363d] p-6">
       {/* Logo */}
-      <div className="mb-8">
+      <div className="mb-6">
         <Link href="/" className="flex items-center gap-3 group">
           <div className="relative">
             <div className="bg-[#21262d] rounded-full w-10 h-10 ring-1 ring-[#30363d] flex items-center justify-center text-[#e6edf3] font-bold text-lg group-hover:ring-[#2ea043] transition-all">
@@ -75,6 +74,15 @@ export function Sidebar() {
           <h1 className="text-[#e6edf3] text-xl font-bold tracking-tight">VibeLog</h1>
         </Link>
       </div>
+
+      {/* Write Button */}
+      <Link
+        href="/write"
+        className="flex items-center justify-center gap-2 px-5 py-4 mb-6 bg-gradient-to-r from-[#2ea043] to-[#3fb950] hover:from-[#25b060] hover:to-[#34a94b] text-white font-semibold rounded-xl shadow-lg shadow-[#2ea043]/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+      >
+        <span className="material-symbols-outlined text-[24px]">edit_square</span>
+        <span>글쓰기</span>
+      </Link>
 
       {/* Navigation */}
       <nav className="flex-1 space-y-2">

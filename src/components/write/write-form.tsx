@@ -5,11 +5,14 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { createPost } from "@/lib/actions/posts";
+import { getProjectColor } from "@/lib/project-colors";
 
 interface Project {
   id: string;
   title: string;
   status: string;
+  color?: string;
+  icon?: string;
 }
 
 interface WriteFormProps {
@@ -48,11 +51,7 @@ export function WriteForm({ projects, initialProjectId }: WriteFormProps) {
       setError(result.error);
       setLoading(false);
     } else {
-      if (selectedProjectId) {
-        router.push(`/projects/${selectedProjectId}`);
-      } else {
-        router.push("/");
-      }
+      router.push("/");
     }
   }
 
@@ -82,41 +81,47 @@ export function WriteForm({ projects, initialProjectId }: WriteFormProps) {
           <label className="text-xs font-semibold text-[#8b949e] uppercase tracking-wider">
             프로젝트 <span className="text-[#8b949e]/50">- 선택</span>
           </label>
-          <div className="relative">
-            <select
-              value={selectedProjectId}
-              onChange={(e) => setSelectedProjectId(e.target.value)}
-              className="w-full px-4 py-3 bg-[#161b22] border border-[#30363d] rounded-xl text-[#e6edf3] focus:outline-none focus:border-[#2ea043] focus:ring-1 focus:ring-[#2ea043] transition-all appearance-none cursor-pointer"
-            >
-              <option value="">미분류 (프로젝트 선택 안함)</option>
-              {projects
-                .filter((p) => p.title !== "미분류")
-                .map((project) => (
-                  <option key={project.id} value={project.id}>
-                    {project.title}
-                  </option>
-                ))}
-            </select>
-            <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-[#8b949e] pointer-events-none">
-              expand_more
-            </span>
+          <div className="grid grid-cols-2 gap-2">
+            {[{ id: "", title: "미분류", icon: "📋", color: "gray" }, ...projects.filter((p) => p.title !== "미분류")].map((project) => {
+              const projectColor = getProjectColor(project.color || "gray");
+              const isSelected = selectedProjectId === project.id;
+              return (
+                <button
+                  key={project.id}
+                  type="button"
+                  onClick={() => setSelectedProjectId(project.id)}
+                  className={`p-3 rounded-xl border-2 transition-all text-left ${
+                    isSelected
+                      ? `${projectColor.border} ${projectColor.bgLight}`
+                      : "border-[#30363d] bg-[#161b22] hover:border-[#8b949e]"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">{project.icon || "📁"}</span>
+                    <span className="text-sm font-medium text-[#e6edf3] truncate">{project.title}</span>
+                  </div>
+                </button>
+              );
+            })}
           </div>
-          {selectedProject && selectedProject.title !== "미분류" && (
+          <div className="flex gap-3">
+            {selectedProject && selectedProject.title !== "미분류" && (
+              <Link
+                href={`/projects/${selectedProjectId}`}
+                className="inline-flex items-center gap-1 text-xs text-[#58a6ff] hover:underline"
+              >
+                <span className="material-symbols-outlined text-[14px]">open_in_new</span>
+                프로젝트 보기
+              </Link>
+            )}
             <Link
-              href={`/projects/${selectedProjectId}`}
-              className="inline-flex items-center gap-1 text-xs text-[#58a6ff] hover:underline"
+              href="/projects/new"
+              className="inline-flex items-center gap-1 text-xs text-[#8b949e] hover:text-[#e6edf3]"
             >
-              <span className="material-symbols-outlined text-[14px]">open_in_new</span>
-              프로젝트 보기
+              <span className="material-symbols-outlined text-[14px]">add</span>
+              새 프로젝트 만들기
             </Link>
-          )}
-          <Link
-            href="/projects/new"
-            className="inline-flex items-center gap-1 text-xs text-[#8b949e] hover:text-[#e6edf3] ml-4"
-          >
-            <span className="material-symbols-outlined text-[14px]">add</span>
-            새 프로젝트 만들기
-          </Link>
+          </div>
         </div>
 
         {/* Content */}

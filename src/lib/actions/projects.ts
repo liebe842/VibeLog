@@ -205,6 +205,10 @@ export async function updateProject(projectId: string, formData: FormData) {
   const title = formData.get("title") as string;
   const description = formData.get("description") as string;
   const status = formData.get("status") as string;
+  const color = formData.get("color") as string;
+  const icon = formData.get("icon") as string;
+
+  console.log("[updateProject]", { title, description, status, color, icon });
 
   if (!title) {
     return { error: "프로젝트 이름은 필수입니다." };
@@ -237,6 +241,8 @@ export async function updateProject(projectId: string, formData: FormData) {
       title,
       description: description || null,
       status: status || "active",
+      color: color || "gray",
+      icon: icon || "📁",
     })
     .eq("id", projectId);
 

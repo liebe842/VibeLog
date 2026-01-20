@@ -4,12 +4,15 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { updateProject, deleteProject } from "@/lib/actions/projects";
+import { PROJECT_COLORS, PROJECT_ICONS, type ProjectColor, type ProjectIcon } from "@/lib/project-colors";
 
 interface Project {
   id: string;
   title: string;
   description?: string;
   status: string;
+  color?: string;
+  icon?: string;
 }
 
 interface ProjectActionsProps {
@@ -22,6 +25,8 @@ export function ProjectActions({ project }: ProjectActionsProps) {
   const [showEditModal, setShowEditModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [selectedColor, setSelectedColor] = useState<ProjectColor>((project.color as ProjectColor) || "blue");
+  const [selectedIcon, setSelectedIcon] = useState<ProjectIcon>((project.icon as ProjectIcon) || "📁");
 
   async function handleDelete() {
     if (project.title === "미분류") {
@@ -115,14 +120,14 @@ export function ProjectActions({ project }: ProjectActionsProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto"
             onClick={() => setShowEditModal(false)}
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-[#161b22] border border-[#30363d] rounded-xl w-full max-w-md p-6"
+              className="bg-[#161b22] border border-[#30363d] rounded-xl w-full max-w-md p-6 my-8 max-h-[90vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-6">
@@ -160,6 +165,55 @@ export function ProjectActions({ project }: ProjectActionsProps) {
                     rows={3}
                     className="w-full px-4 py-3 bg-[#0d1117] border border-[#30363d] rounded-xl text-[#e6edf3] placeholder:text-[#8b949e]/50 focus:outline-none focus:border-[#2ea043] focus:ring-1 focus:ring-[#2ea043] resize-none transition-all"
                   />
+                </div>
+
+                {/* Icon Selector */}
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-[#8b949e] uppercase tracking-wider">
+                    아이콘
+                  </label>
+                  <div className="grid grid-cols-8 gap-2">
+                    {PROJECT_ICONS.map((icon) => (
+                      <button
+                        key={icon}
+                        type="button"
+                        onClick={() => setSelectedIcon(icon)}
+                        className={`p-2 text-xl rounded-lg border-2 transition-all hover:scale-110 ${
+                          selectedIcon === icon
+                            ? "border-[#2ea043] bg-[#2ea043]/10"
+                            : "border-[#30363d] bg-[#0d1117] hover:border-[#8b949e]"
+                        }`}
+                      >
+                        {icon}
+                      </button>
+                    ))}
+                  </div>
+                  <input type="hidden" name="icon" value={selectedIcon} />
+                </div>
+
+                {/* Color Selector */}
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-[#8b949e] uppercase tracking-wider">
+                    색상
+                  </label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {Object.entries(PROJECT_COLORS).map(([key, color]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setSelectedColor(key as ProjectColor)}
+                        className={`p-3 rounded-lg border-2 transition-all hover:scale-105 ${
+                          selectedColor === key
+                            ? `${color.border} ${color.bgLight}`
+                            : "border-[#30363d] bg-[#0d1117] hover:border-[#8b949e]"
+                        }`}
+                      >
+                        <div className={`w-full h-2 rounded-full ${color.bg}`} />
+                        <p className="text-[10px] mt-1 text-[#e6edf3] font-medium">{color.name}</p>
+                      </button>
+                    ))}
+                  </div>
+                  <input type="hidden" name="color" value={selectedColor} />
                 </div>
 
                 <div className="space-y-2">

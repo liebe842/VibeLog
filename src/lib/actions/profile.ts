@@ -92,7 +92,29 @@ export async function updateStreak(userId: string) {
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
 
+  console.log(`[updateStreak] User ${userId} has ${posts?.length || 0} posts`);
+
   if (!posts || posts.length === 0) {
+    // Update profile to reset streak to 0
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("stats")
+      .eq("id", userId)
+      .single();
+
+    if (profile) {
+      await supabase
+        .from("profiles")
+        .update({
+          stats: {
+            ...profile.stats,
+            streak: 0,
+          },
+        })
+        .eq("id", userId);
+    }
+
+    console.log(`[updateStreak] Reset streak to 0 for user ${userId}`);
     return { streak: 0 };
   }
 
@@ -139,7 +161,23 @@ export async function updateStreak(userId: string) {
       .eq("id", userId);
   }
 
+  console.log(`[updateStreak] Updated streak to ${streak} for user ${userId}`);
   return { streak };
+}
+
+export async function recalculateCurrentUserStreak() {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "로그인이 필요합니다." };
+  }
+
+  const result = await updateStreak(user.id);
+  return { success: true, streak: result.streak };
 }
 
 export async function updateProfile(data: {
