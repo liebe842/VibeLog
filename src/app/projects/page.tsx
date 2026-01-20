@@ -1,5 +1,6 @@
 import { getProjects } from "@/lib/actions/projects";
 import { getCurrentUserProfile } from "@/lib/actions/profile";
+import { getProjectColor } from "@/lib/project-colors";
 import Link from "next/link";
 
 export default async function ProjectsPage() {
@@ -51,17 +52,19 @@ export default async function ProjectsPage() {
         </div>
       ) : (
         <div className="grid gap-4">
-          {projects.map((project: any) => (
+          {projects.map((project: any) => {
+            const projectColor = getProjectColor(project.color || "gray");
+            return (
             <Link
               key={project.id}
               href={`/projects/${project.id}`}
-              className="block p-5 bg-[#161b22] border border-[#30363d] rounded-xl hover:border-[#8b949e] transition-all group"
+              className={`block p-5 bg-[#161b22] border-2 rounded-xl transition-all group ${projectColor.border} ${projectColor.hover}`}
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-2">
-                    <span className="material-symbols-outlined text-[#8b949e] group-hover:text-[#e6edf3] transition-colors">
-                      folder
+                    <span className="text-3xl">
+                      {project.icon || "📁"}
                     </span>
                     <h2 className="text-lg font-semibold text-[#e6edf3] truncate">
                       {project.title}
@@ -105,7 +108,8 @@ export default async function ProjectsPage() {
                 </span>
               </div>
             </Link>
-          ))}
+            );
+          })}
         </div>
       )}
     </main>

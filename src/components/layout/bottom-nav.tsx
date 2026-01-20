@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 
 const navItems = [
   { href: "/", icon: "home", label: "Home" },
+  { href: "/projects", icon: "folder", label: "Projects" },
   { href: "/write", icon: "add", label: "", isCenter: true },
   { href: "/profile", icon: "person", label: "Profile" },
 ];
@@ -26,6 +27,19 @@ export function BottomNav() {
             home
           </span>
           <span className="text-[10px] font-medium">Home</span>
+        </Link>
+
+        {/* Projects */}
+        <Link
+          href="/projects"
+          className={`flex flex-col items-center justify-center w-full gap-1 group transition-colors ${
+            pathname.startsWith("/projects") ? "text-[#2ea043]" : "text-[#8b949e] hover:text-[#e6edf3]"
+          }`}
+        >
+          <span className="material-symbols-outlined text-[24px] group-hover:scale-110 transition-transform">
+            folder
+          </span>
+          <span className="text-[10px] font-medium">Projects</span>
         </Link>
 
         {/* Center FAB */}

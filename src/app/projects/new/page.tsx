@@ -4,11 +4,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { createProject } from "@/lib/actions/projects";
+import { PROJECT_COLORS, PROJECT_ICONS, type ProjectColor, type ProjectIcon } from "@/lib/project-colors";
 
 export default function NewProjectPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [selectedColor, setSelectedColor] = useState<ProjectColor>("blue");
+  const [selectedIcon, setSelectedIcon] = useState<ProjectIcon>("📁");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -72,6 +75,55 @@ export default function NewProjectPage() {
             placeholder="이 프로젝트에 대해 간단히 설명해주세요..."
             className="w-full px-4 py-3 bg-[#161b22] border border-[#30363d] rounded-xl text-[#e6edf3] placeholder:text-[#8b949e]/50 focus:outline-none focus:border-[#2ea043] focus:ring-1 focus:ring-[#2ea043] resize-none transition-all"
           />
+        </div>
+
+        {/* Icon Selector */}
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-[#8b949e] uppercase tracking-wider">
+            아이콘
+          </label>
+          <div className="grid grid-cols-8 gap-2">
+            {PROJECT_ICONS.map((icon) => (
+              <button
+                key={icon}
+                type="button"
+                onClick={() => setSelectedIcon(icon)}
+                className={`p-3 text-2xl rounded-lg border-2 transition-all hover:scale-110 ${
+                  selectedIcon === icon
+                    ? "border-[#2ea043] bg-[#2ea043]/10"
+                    : "border-[#30363d] bg-[#161b22] hover:border-[#8b949e]"
+                }`}
+              >
+                {icon}
+              </button>
+            ))}
+          </div>
+          <input type="hidden" name="icon" value={selectedIcon} />
+        </div>
+
+        {/* Color Selector */}
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-[#8b949e] uppercase tracking-wider">
+            색상
+          </label>
+          <div className="grid grid-cols-4 gap-3">
+            {Object.entries(PROJECT_COLORS).map(([key, color]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setSelectedColor(key as ProjectColor)}
+                className={`p-4 rounded-lg border-2 transition-all hover:scale-105 ${
+                  selectedColor === key
+                    ? `${color.border} ${color.bgLight}`
+                    : "border-[#30363d] bg-[#161b22] hover:border-[#8b949e]"
+                }`}
+              >
+                <div className={`w-full h-3 rounded-full ${color.bg}`} />
+                <p className="text-xs mt-2 text-[#e6edf3] font-medium">{color.name}</p>
+              </button>
+            ))}
+          </div>
+          <input type="hidden" name="color" value={selectedColor} />
         </div>
 
         {/* Info Box */}

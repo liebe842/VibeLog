@@ -10,6 +10,7 @@ import { ProfileEditModal } from "@/components/profile/profile-edit-modal";
 
 const navItems = [
   { href: "/", icon: "home", label: "피드" },
+  { href: "/projects", icon: "folder", label: "프로젝트" },
   { href: "/write", icon: "edit_square", label: "글쓰기" },
   { href: "/notifications", icon: "notifications", label: "알림", showBadge: true },
   { href: "/profile", icon: "person", label: "프로필" },

@@ -1,5 +1,6 @@
 import { getProject, getProjectPosts } from "@/lib/actions/projects";
 import { getCurrentUserProfile } from "@/lib/actions/profile";
+import { getProjectColor } from "@/lib/project-colors";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ProjectPostList } from "@/components/projects/project-post-list";
@@ -35,6 +36,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
   }
 
   const isOwner = currentUserId === project.user_id;
+  const projectColor = getProjectColor(project.color || "gray");
 
   const statusColors: Record<string, string> = {
     active: "bg-green-500/20 text-green-400 border-green-500/30",
@@ -60,10 +62,10 @@ export default async function ProjectDetailPage({ params }: PageProps) {
       </Link>
 
       {/* Project Header */}
-      <div className="p-6 bg-[#161b22] border border-[#30363d] rounded-xl">
+      <div className={`p-6 bg-[#161b22] border-2 rounded-xl ${projectColor.border} ${projectColor.bgLight}`}>
         <div className="flex items-start justify-between gap-4 mb-4">
           <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-[32px] text-[#8b949e]">folder</span>
+            <span className="text-5xl">{project.icon || "📁"}</span>
             <div>
               <div className="flex items-center gap-3">
                 <h1 className="text-2xl font-bold text-[#e6edf3]">{project.title}</h1>
