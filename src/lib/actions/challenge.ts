@@ -101,7 +101,8 @@ export async function calculateChallengeProgress() {
     (today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
   );
 
-  const currentDay = Math.max(0, Math.min(daysPassed, challenge.total_days));
+  // Add 1 to start from Day 1 (not Day 0)
+  const currentDay = Math.max(0, Math.min(daysPassed + 1, challenge.total_days));
   const progress = Math.round((currentDay / challenge.total_days) * 100);
 
   return {

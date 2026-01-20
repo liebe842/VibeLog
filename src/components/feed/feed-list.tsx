@@ -8,6 +8,7 @@ import { getComments } from "@/lib/actions/comments";
 import { useRouter } from "next/navigation";
 import { CommentSection } from "@/components/comments/comment-section";
 import { PostEditModal } from "@/components/feed/post-edit-modal";
+import { getProjectColor } from "@/lib/project-colors";
 
 interface Post {
   id: string;
@@ -21,10 +22,17 @@ interface Post {
   created_at: string;
   user_id: string;
   liked_by_user?: boolean;
+  project_id?: string;
   profiles?: {
     username: string;
     level?: number;
     avatar_url?: string;
+  };
+  projects?: {
+    id: string;
+    title: string;
+    color?: string;
+    icon?: string;
   };
 }
 
@@ -110,13 +118,13 @@ function ProgressCard({ stats }: { stats?: FeedListProps["stats"] }) {
       variants={itemVariants}
     >
       <div className="flex justify-between items-center">
-        <h2 className="text-[#e6edf3] text-sm font-semibold">오늘의 진행상황</h2>
-        <span className="text-[#3fb950] text-xs font-mono bg-[#2ea043]/10 px-2 py-1 rounded border border-[#2ea043]/30">
+        <h2 className="text-[#e6edf3] text-base font-semibold">오늘의 진행상황</h2>
+        <span className="text-[#3fb950] text-sm font-mono bg-[#2ea043]/10 px-3 py-1.5 rounded border border-[#2ea043]/30">
           {challengeDay}일차 / {challengeTotal}일
         </span>
       </div>
       <div className="flex flex-col gap-2">
-        <div className="flex justify-between text-xs text-[#8b949e] mb-1">
+        <div className="flex justify-between text-sm text-[#8b949e] mb-1">
           <span>레벨 {level}: 코딩 챌린지</span>
           <span>{Math.round(progress)}%</span>
         </div>
@@ -130,13 +138,13 @@ function ProgressCard({ stats }: { stats?: FeedListProps["stats"] }) {
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3 pt-2">
-        <div className="bg-[#0d1117] rounded border border-[#30363d] p-3 flex flex-col items-center justify-center text-center">
-          <span className="text-[#e6edf3] text-xl font-bold font-mono">{streak}</span>
-          <span className="text-[#8b949e] text-xs mt-1">연속 일수</span>
+        <div className="bg-[#0d1117] rounded border border-[#30363d] p-4 flex flex-col items-center justify-center text-center">
+          <span className="text-[#e6edf3] text-3xl font-bold font-mono">{streak}</span>
+          <span className="text-[#8b949e] text-sm mt-1.5">연속 일수</span>
         </div>
-        <div className="bg-[#0d1117] rounded border border-[#30363d] p-3 flex flex-col items-center justify-center text-center">
-          <span className="text-[#e6edf3] text-xl font-bold font-mono">{totalLogs}</span>
-          <span className="text-[#8b949e] text-xs mt-1">활동 기록</span>
+        <div className="bg-[#0d1117] rounded border border-[#30363d] p-4 flex flex-col items-center justify-center text-center">
+          <span className="text-[#e6edf3] text-3xl font-bold font-mono">{totalLogs}</span>
+          <span className="text-[#8b949e] text-sm mt-1.5">활동 기록</span>
         </div>
       </div>
     </motion.section>
@@ -257,10 +265,24 @@ export function FeedList({ posts, stats, currentUserId }: FeedListProps) {
                       <span className="w-1 h-1 bg-[#8b949e] rounded-full" />
                       <span className="text-[#8b949e] text-xs">{formatTimeAgo(post.created_at)}</span>
                     </div>
-                    <span className={`text-xs px-2 py-0.5 rounded-full border ${categoryBadgeColors[post.category] || "bg-[#8b949e]/10 text-[#8b949e] border-[#8b949e]/30"}`}>
-                      {categoryLabels[post.category] || post.category}
-                      {post.duration_min > 0 && ` (${post.duration_min}분)`}
-                    </span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`text-xs px-2 py-0.5 rounded-full border ${categoryBadgeColors[post.category] || "bg-[#8b949e]/10 text-[#8b949e] border-[#8b949e]/30"}`}>
+                        {categoryLabels[post.category] || post.category}
+                        {post.duration_min > 0 && ` (${post.duration_min}분)`}
+                      </span>
+                      {post.projects && post.projects.title !== "미분류" && (() => {
+                        const projectColor = getProjectColor(post.projects.color || "gray");
+                        return (
+                          <Link
+                            href={`/projects/${post.projects.id}`}
+                            className={`text-xs px-2 py-0.5 rounded-full border-2 inline-flex items-center gap-1 hover:scale-105 transition-transform ${projectColor.border} ${projectColor.bgLight}`}
+                          >
+                            <span>{post.projects.icon || "📁"}</span>
+                            <span>{post.projects.title}</span>
+                          </Link>
+                        );
+                      })()}
+                    </div>
                   </div>
                 </div>
                 {currentUserId && currentUserId === post.user_id && (
