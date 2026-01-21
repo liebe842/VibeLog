@@ -6,9 +6,14 @@ import { revalidatePath } from "next/cache";
 export async function createChallengeSettings(formData: FormData) {
   const startDate = formData.get("start_date") as string;
   const totalDays = parseInt(formData.get("total_days") as string);
+  const requiredDays = parseInt(formData.get("required_days") as string) || 7;
 
   if (!startDate || !totalDays || totalDays <= 0) {
     return { error: "시작일과 기간을 올바르게 입력해주세요." };
+  }
+
+  if (requiredDays <= 0 || requiredDays > totalDays) {
+    return { error: "성공 기준 일수는 1 이상, 총 기간 이하여야 합니다." };
   }
 
   const supabase = await createClient();
@@ -50,6 +55,7 @@ export async function createChallengeSettings(formData: FormData) {
       start_date: startDate,
       end_date: end.toISOString().split("T")[0],
       total_days: totalDays,
+      required_days: requiredDays,
       created_by: user.id,
       is_active: true,
     })
@@ -84,29 +90,54 @@ export async function getActiveChallengeSettings() {
   return { challenge };
 }
 
-export async function calculateChallengeProgress() {
+export async function calculateChallengeProgress(userId?: string) {
+  const supabase = await createClient();
   const { challenge } = await getActiveChallengeSettings();
 
   if (!challenge) {
     return {
-      currentDay: 0,
-      totalDays: 30,
+      writtenDays: 0,
+      requiredDays: 7,
+      totalDays: 14,
       progress: 0,
     };
   }
 
-  const today = new Date();
-  const startDate = new Date(challenge.start_date);
-  const daysPassed = Math.floor(
-    (today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
-  );
+  // Get user ID if not provided
+  let targetUserId = userId;
+  if (!targetUserId) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    targetUserId = user?.id;
+  }
 
-  // Add 1 to start from Day 1 (not Day 0)
-  const currentDay = Math.max(0, Math.min(daysPassed + 1, challenge.total_days));
-  const progress = Math.round((currentDay / challenge.total_days) * 100);
+  let writtenDays = 0;
+
+  if (targetUserId) {
+    // Get posts created by this user within the challenge period
+    const { data: posts } = await supabase
+      .from("posts")
+      .select("created_at")
+      .eq("user_id", targetUserId)
+      .gte("created_at", challenge.start_date)
+      .lte("created_at", challenge.end_date + "T23:59:59");
+
+    if (posts && posts.length > 0) {
+      // Count unique dates (using Set to deduplicate)
+      const uniqueDates = new Set(
+        posts.map((post) => post.created_at.split("T")[0])
+      );
+      writtenDays = uniqueDates.size;
+    }
+  }
+
+  const requiredDays = challenge.required_days || 7;
+  const progress = Math.min(100, Math.round((writtenDays / requiredDays) * 100));
 
   return {
-    currentDay,
+    writtenDays,
+    requiredDays,
     totalDays: challenge.total_days,
     progress,
   };

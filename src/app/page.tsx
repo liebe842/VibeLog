@@ -32,8 +32,8 @@ export default async function HomePage({
         streak: profile.stats?.streak || 0,
         total_logs: profile.stats?.total_logs || 0,
         level: profile.level || 1,
-        challengeDay: challengeProgress.currentDay,
-        challengeTotal: challengeProgress.totalDays,
+        writtenDays: challengeProgress.writtenDays,
+        requiredDays: challengeProgress.requiredDays,
       };
     }
   } catch {

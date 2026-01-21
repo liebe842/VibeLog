@@ -42,8 +42,8 @@ interface FeedListProps {
     streak: number;
     total_logs: number;
     level: number;
-    challengeDay?: number;
-    challengeTotal?: number;
+    writtenDays?: number;
+    requiredDays?: number;
   };
   currentUserId?: string;
   isAdmin?: boolean;
@@ -110,10 +110,9 @@ function ProgressCard({ stats }: { stats?: FeedListProps["stats"] }) {
   const streak = stats?.streak || 0;
   const totalLogs = stats?.total_logs || 0;
   const level = stats?.level || 1;
-  const challengeDay = stats?.challengeDay || 0;
-  const challengeTotal = stats?.challengeTotal || 30;
-  // Use challengeTotal for progress calculation instead of hardcoded 30
-  const progress = Math.min((streak / challengeTotal) * 100, 100);
+  const writtenDays = stats?.writtenDays || 0;
+  const requiredDays = stats?.requiredDays || 7;
+  const progress = Math.min((writtenDays / requiredDays) * 100, 100);
 
   return (
     <motion.section
@@ -123,7 +122,7 @@ function ProgressCard({ stats }: { stats?: FeedListProps["stats"] }) {
       <div className="flex justify-between items-center">
         <h2 className="text-[#e6edf3] text-base font-semibold">오늘의 진행상황</h2>
         <span className="text-[#3fb950] text-sm font-mono bg-[#2ea043]/10 px-3 py-1.5 rounded border border-[#2ea043]/30">
-          {challengeDay}일차 / {challengeTotal}일
+          {writtenDays}일 작성 / {requiredDays}일 목표
         </span>
       </div>
       <div className="flex flex-col gap-2">
@@ -426,7 +425,7 @@ export function FeedList({ posts, stats, currentUserId, isAdmin, initialSearch, 
 
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between px-1">
-          <h3 className="text-[#e6edf3] text-base font-semibold">커뮤니티 활동</h3>
+          <h3 className="text-[#e6edf3] text-base font-semibold">개발 로그</h3>
           <SearchBar initialSearch={initialSearch} initialSearchType={initialSearchType} />
         </div>
 

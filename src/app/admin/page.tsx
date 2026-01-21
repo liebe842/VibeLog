@@ -124,7 +124,7 @@ export default function AdminPage() {
           {currentChallenge && (
             <div className="mb-4 p-4 bg-[#0d1117] rounded-lg border border-[#30363d]">
               <p className="text-sm text-[#8b949e] mb-2">현재 활성 챌린지:</p>
-              <div className="grid grid-cols-3 gap-4 text-sm">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div>
                   <span className="text-[#8b949e]">시작일:</span>
                   <span className="text-[#e6edf3] ml-2">{currentChallenge.start_date}</span>
@@ -134,15 +134,19 @@ export default function AdminPage() {
                   <span className="text-[#e6edf3] ml-2">{currentChallenge.end_date}</span>
                 </div>
                 <div>
-                  <span className="text-[#8b949e]">기간:</span>
+                  <span className="text-[#8b949e]">총 기간:</span>
                   <span className="text-[#e6edf3] ml-2">{currentChallenge.total_days}일</span>
+                </div>
+                <div>
+                  <span className="text-[#8b949e]">성공 기준:</span>
+                  <span className="text-[#3fb950] ml-2">{currentChallenge.required_days || 7}일 작성</span>
                 </div>
               </div>
             </div>
           )}
 
           <form onSubmit={handleCreateChallenge} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-[#8b949e]">시작일</label>
                 <input
@@ -153,15 +157,27 @@ export default function AdminPage() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-[#8b949e]">기간 (일)</label>
+                <label className="text-sm font-semibold text-[#8b949e]">총 기간 (일)</label>
                 <input
                   type="number"
                   name="total_days"
-                  placeholder="30"
+                  placeholder="14"
                   min="1"
                   required
                   className="w-full px-4 py-3 bg-[#0d1117] border border-[#30363d] rounded-lg text-[#e6edf3] placeholder:text-[#8b949e]/50 focus:outline-none focus:border-[#2ea043] focus:ring-1 focus:ring-[#2ea043] transition-all"
                 />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-[#8b949e]">성공 기준 (일)</label>
+                <input
+                  type="number"
+                  name="required_days"
+                  placeholder="7"
+                  min="1"
+                  required
+                  className="w-full px-4 py-3 bg-[#0d1117] border border-[#30363d] rounded-lg text-[#e6edf3] placeholder:text-[#8b949e]/50 focus:outline-none focus:border-[#2ea043] focus:ring-1 focus:ring-[#2ea043] transition-all"
+                />
+                <p className="text-xs text-[#8b949e]">기간 내 이 일수만큼 작성하면 성공</p>
               </div>
             </div>
 
