@@ -387,7 +387,11 @@ export async function addFeature(
     .eq("id", projectId)
     .single();
 
-  if (project?.user_id !== user.id && !isAdmin) {
+  if (!project) {
+    return { error: "프로젝트를 찾을 수 없습니다." };
+  }
+
+  if (project.user_id !== user.id && !isAdmin) {
     return { error: "본인의 프로젝트만 수정할 수 있습니다." };
   }
 
@@ -445,7 +449,11 @@ export async function moveFeature(
     .eq("id", projectId)
     .single();
 
-  if (project?.user_id !== user.id && !isAdmin) {
+  if (!project) {
+    return { error: "프로젝트를 찾을 수 없습니다." };
+  }
+
+  if (project.user_id !== user.id && !isAdmin) {
     return { error: "본인의 프로젝트만 수정할 수 있습니다." };
   }
 
@@ -506,7 +514,11 @@ export async function deleteFeature(
     .eq("id", projectId)
     .single();
 
-  if (project?.user_id !== user.id && !isAdmin) {
+  if (!project) {
+    return { error: "프로젝트를 찾을 수 없습니다." };
+  }
+
+  if (project.user_id !== user.id && !isAdmin) {
     return { error: "본인의 프로젝트만 수정할 수 있습니다." };
   }
 
