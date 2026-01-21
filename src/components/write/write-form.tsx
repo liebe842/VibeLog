@@ -175,10 +175,10 @@ export function WriteForm({ projects, initialProjectId }: WriteFormProps) {
         {/* Project Selection */}
         <div className="space-y-2">
           <label className="text-xs font-semibold text-[#8b949e] uppercase tracking-wider">
-            프로젝트 <span className="text-[#8b949e]/50">- 선택</span>
+            프로젝트
           </label>
           <div className="grid grid-cols-2 gap-2">
-            {[{ id: "", title: "미분류", icon: "📋", color: "gray" }, ...projects.filter((p) => p.title !== "미분류")].map((project) => {
+            {[...projects.filter((p) => p.title !== "미분류"), { id: projects.find((p) => p.title === "미분류")?.id || "", title: "기타", icon: "📋", color: "gray" }].map((project) => {
               const projectColor = getProjectColor(project.color || "gray");
               const isSelected = selectedProjectId === project.id;
               return (
@@ -201,7 +201,7 @@ export function WriteForm({ projects, initialProjectId }: WriteFormProps) {
             })}
           </div>
           <div className="flex gap-3">
-            {selectedProject && selectedProject.title !== "미분류" && (
+            {selectedProject && selectedProject.title !== "미분류" && selectedProjectId !== projects.find((p) => p.title === "미분류")?.id && (
               <Link
                 href={`/projects/${selectedProjectId}`}
                 className="inline-flex items-center gap-1 text-xs text-[#58a6ff] hover:underline"
@@ -369,7 +369,7 @@ export function WriteForm({ projects, initialProjectId }: WriteFormProps) {
         {/* Submit Button */}
         <motion.button
           type="submit"
-          disabled={loading || !selectedCategory}
+          disabled={loading || !selectedCategory || !selectedProjectId}
           className="w-full bg-gradient-to-r from-[#2ea043] to-[#3fb950] hover:from-[#25b060] hover:to-[#34a94b] disabled:from-[#2ea043]/50 disabled:to-[#3fb950]/50 disabled:cursor-not-allowed text-white font-bold py-4 px-6 rounded-xl shadow-lg shadow-[#2ea043]/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
           whileHover={{ scale: loading ? 1 : 1.02 }}
           whileTap={{ scale: loading ? 1 : 0.98 }}

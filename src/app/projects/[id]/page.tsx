@@ -27,16 +27,19 @@ export default async function ProjectDetailPage({ params }: PageProps) {
   const posts = postsResult.posts || [];
 
   let currentUserId: string | undefined;
+  let isAdmin = false;
   try {
     const profileResult = await getCurrentUserProfile();
     if (profileResult.profile) {
       currentUserId = profileResult.profile.id;
+      isAdmin = profileResult.profile.role === "admin";
     }
   } catch {
     // Not logged in
   }
 
   const isOwner = currentUserId === project.user_id;
+  const canEdit = isOwner || isAdmin;
   const projectColor = getProjectColor(project.color || "gray");
 
   const statusColors: Record<string, string> = {
@@ -90,7 +93,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
               </div>
             </div>
           </div>
-          {isOwner && <ProjectActions project={project} />}
+          {canEdit && <ProjectActions project={project} />}
         </div>
         {project.description && (
           <p className="text-[#8b949e] leading-relaxed">{project.description}</p>
@@ -109,7 +112,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
         projectId={id}
         initialPlanned={project.features?.planned || []}
         initialCompleted={project.features?.completed || []}
-        isOwner={isOwner}
+        isOwner={canEdit}
       />
 
       {/* Write Button */}
@@ -135,7 +138,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
             )}
           </div>
         ) : (
-          <ProjectPostList posts={posts} currentUserId={currentUserId} />
+          <ProjectPostList posts={posts} currentUserId={currentUserId} isAdmin={isAdmin} />
         )}
       </div>
     </main>

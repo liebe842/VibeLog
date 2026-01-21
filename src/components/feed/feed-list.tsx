@@ -46,6 +46,7 @@ interface FeedListProps {
     challengeTotal?: number;
   };
   currentUserId?: string;
+  isAdmin?: boolean;
 }
 
 const categoryColors: Record<string, string> = {
@@ -151,7 +152,7 @@ function ProgressCard({ stats }: { stats?: FeedListProps["stats"] }) {
   );
 }
 
-export function FeedList({ posts, stats, currentUserId }: FeedListProps) {
+export function FeedList({ posts, stats, currentUserId, isAdmin }: FeedListProps) {
   const router = useRouter();
   const [localPosts, setLocalPosts] = useState(posts);
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
@@ -285,7 +286,7 @@ export function FeedList({ posts, stats, currentUserId }: FeedListProps) {
                     </div>
                   </div>
                 </div>
-                {currentUserId && currentUserId === post.user_id && (
+                {currentUserId && (currentUserId === post.user_id || isAdmin) && (
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => setEditingPost(post)}

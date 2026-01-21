@@ -55,6 +55,7 @@ export async function getProjects(limit = 20, offset = 0) {
       )
     `
     )
+    .neq("title", "미분류")
     .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);
 
@@ -224,6 +225,15 @@ export async function updateProject(projectId: string, formData: FormData) {
     return { error: "로그인이 필요합니다." };
   }
 
+  // Check if current user is admin
+  const { data: currentProfile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  const isAdmin = currentProfile?.role === "admin";
+
   // Check if current user owns the project
   const { data: project } = await supabase
     .from("projects")
@@ -231,7 +241,7 @@ export async function updateProject(projectId: string, formData: FormData) {
     .eq("id", projectId)
     .single();
 
-  if (project?.user_id !== user.id) {
+  if (project?.user_id !== user.id && !isAdmin) {
     return { error: "본인의 프로젝트만 수정할 수 있습니다." };
   }
 
@@ -266,6 +276,15 @@ export async function deleteProject(projectId: string) {
     return { error: "로그인이 필요합니다." };
   }
 
+  // Check if current user is admin
+  const { data: currentProfile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  const isAdmin = currentProfile?.role === "admin";
+
   // Check if current user owns the project
   const { data: project } = await supabase
     .from("projects")
@@ -273,7 +292,7 @@ export async function deleteProject(projectId: string) {
     .eq("id", projectId)
     .single();
 
-  if (project?.user_id !== user.id) {
+  if (project?.user_id !== user.id && !isAdmin) {
     return { error: "본인의 프로젝트만 삭제할 수 있습니다." };
   }
 
@@ -352,6 +371,15 @@ export async function addFeature(
     return { error: "로그인이 필요합니다." };
   }
 
+  // Check if current user is admin
+  const { data: currentProfile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  const isAdmin = currentProfile?.role === "admin";
+
   // Get current project
   const { data: project } = await supabase
     .from("projects")
@@ -359,7 +387,7 @@ export async function addFeature(
     .eq("id", projectId)
     .single();
 
-  if (project?.user_id !== user.id) {
+  if (project?.user_id !== user.id && !isAdmin) {
     return { error: "본인의 프로젝트만 수정할 수 있습니다." };
   }
 
@@ -401,6 +429,15 @@ export async function moveFeature(
     return { error: "로그인이 필요합니다." };
   }
 
+  // Check if current user is admin
+  const { data: currentProfile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  const isAdmin = currentProfile?.role === "admin";
+
   // Get current project
   const { data: project } = await supabase
     .from("projects")
@@ -408,7 +445,7 @@ export async function moveFeature(
     .eq("id", projectId)
     .single();
 
-  if (project?.user_id !== user.id) {
+  if (project?.user_id !== user.id && !isAdmin) {
     return { error: "본인의 프로젝트만 수정할 수 있습니다." };
   }
 
@@ -453,6 +490,15 @@ export async function deleteFeature(
     return { error: "로그인이 필요합니다." };
   }
 
+  // Check if current user is admin
+  const { data: currentProfile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  const isAdmin = currentProfile?.role === "admin";
+
   // Get current project
   const { data: project } = await supabase
     .from("projects")
@@ -460,7 +506,7 @@ export async function deleteFeature(
     .eq("id", projectId)
     .single();
 
-  if (project?.user_id !== user.id) {
+  if (project?.user_id !== user.id && !isAdmin) {
     return { error: "본인의 프로젝트만 수정할 수 있습니다." };
   }
 
@@ -495,6 +541,15 @@ export async function reorderFeatures(
     return { error: "로그인이 필요합니다." };
   }
 
+  // Check if current user is admin
+  const { data: currentProfile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  const isAdmin = currentProfile?.role === "admin";
+
   // Get current project
   const { data: project } = await supabase
     .from("projects")
@@ -502,7 +557,7 @@ export async function reorderFeatures(
     .eq("id", projectId)
     .single();
 
-  if (project?.user_id !== user.id) {
+  if (project?.user_id !== user.id && !isAdmin) {
     return { error: "본인의 프로젝트만 수정할 수 있습니다." };
   }
 

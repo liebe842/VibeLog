@@ -230,13 +230,22 @@ export async function deletePost(postId: string) {
     return { error: "로그인이 필요합니다." };
   }
 
+  // Check if current user is admin
+  const { data: currentProfile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  const isAdmin = currentProfile?.role === "admin";
+
   const { data: post } = await supabase
     .from("posts")
     .select("user_id, image_url")
     .eq("id", postId)
     .single();
 
-  if (post?.user_id !== user.id) {
+  if (post?.user_id !== user.id && !isAdmin) {
     return { error: "본인의 포스트만 삭제할 수 있습니다." };
   }
 
@@ -359,6 +368,15 @@ export async function updatePost(postId: string, formData: FormData) {
     return { error: "로그인이 필요합니다." };
   }
 
+  // Check if current user is admin
+  const { data: currentProfile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  const isAdmin = currentProfile?.role === "admin";
+
   // Check if current user owns the post
   const { data: post } = await supabase
     .from("posts")
@@ -366,7 +384,7 @@ export async function updatePost(postId: string, formData: FormData) {
     .eq("id", postId)
     .single();
 
-  if (post?.user_id !== user.id) {
+  if (post?.user_id !== user.id && !isAdmin) {
     return { error: "본인의 포스트만 수정할 수 있습니다." };
   }
 

@@ -31,6 +31,7 @@ interface Post {
 interface ProjectPostListProps {
   posts: Post[];
   currentUserId?: string;
+  isAdmin?: boolean;
 }
 
 const categoryBorderColors: Record<string, string> = {
@@ -76,7 +77,7 @@ const itemVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
 };
 
-export function ProjectPostList({ posts, currentUserId }: ProjectPostListProps) {
+export function ProjectPostList({ posts, currentUserId, isAdmin }: ProjectPostListProps) {
   const router = useRouter();
   const [localPosts, setLocalPosts] = useState(posts);
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
@@ -176,7 +177,7 @@ export function ProjectPostList({ posts, currentUserId }: ProjectPostListProps) 
                 </span>
               </div>
             </div>
-            {currentUserId && currentUserId === post.user_id && (
+            {currentUserId && (currentUserId === post.user_id || isAdmin) && (
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => setEditingPost(post)}
