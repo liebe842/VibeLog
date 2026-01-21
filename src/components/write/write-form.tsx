@@ -32,12 +32,36 @@ export function WriteForm({ projects, initialProjectId }: WriteFormProps) {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [aiHelpScore, setAiHelpScore] = useState<number | null>(null);
+  const [timeSaved, setTimeSaved] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const defaultContent = `- 오늘 작업한 내용
+
+- AI와 협업하며 느낀 어려움이나 깨달음`;
+
+  const timeSavedOptions = [
+    { value: "none", label: "단축되지 않음" },
+    { value: "1.5x", label: "약 1.5배" },
+    { value: "2x", label: "약 2배" },
+    { value: "3x", label: "약 3배 이상" },
+    { value: "impossible", label: "직접 코딩으로는 불가능한 수준" },
+  ];
+
+  const aiHelpScoreLabels: Record<number, string> = {
+    1: "거의 도움 안됨",
+    2: "약간 도움됨",
+    3: "보통",
+    4: "많이 도움됨",
+    5: "매우 많이 도움됨",
+  };
+
   const categories = [
-    { id: "Coding", label: "코딩", icon: "code_blocks", color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
-    { id: "Study", label: "공부", icon: "menu_book", color: "bg-purple-500/20 text-purple-400 border-purple-500/30" },
-    { id: "Debug", label: "디버그", icon: "bug_report", color: "bg-orange-500/20 text-orange-400 border-orange-500/30" },
+    { id: "Planning", label: "기획 및 PRD 작성", icon: "description", color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
+    { id: "Development", label: "핵심 기능 구현", icon: "code_blocks", color: "bg-green-500/20 text-green-400 border-green-500/30" },
+    { id: "Design", label: "UI 디자인 및 개선", icon: "palette", color: "bg-purple-500/20 text-purple-400 border-purple-500/30" },
+    { id: "Debug", label: "디버깅 및 배포", icon: "bug_report", color: "bg-orange-500/20 text-orange-400 border-orange-500/30" },
+    { id: "Other", label: "기타", icon: "more_horiz", color: "bg-gray-500/20 text-gray-400 border-gray-500/30" },
   ];
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
@@ -136,6 +160,12 @@ export function WriteForm({ projects, initialProjectId }: WriteFormProps) {
       if (finalImageUrl) {
         formData.set("image_url", finalImageUrl);
       }
+      if (aiHelpScore !== null) {
+        formData.set("ai_help_score", aiHelpScore.toString());
+      }
+      if (timeSaved) {
+        formData.set("time_saved", timeSaved);
+      }
 
       const result = await createPost(formData);
 
@@ -220,6 +250,32 @@ export function WriteForm({ projects, initialProjectId }: WriteFormProps) {
           </div>
         </div>
 
+        {/* Category */}
+        <div className="space-y-3">
+          <label className="text-xs font-semibold text-[#8b949e] uppercase tracking-wider">
+            카테고리
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {categories.map((cat) => (
+              <motion.button
+                key={cat.id}
+                type="button"
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`px-3 py-2 rounded-lg border flex items-center gap-1.5 transition-all ${
+                  selectedCategory === cat.id
+                    ? `${cat.color} border-current`
+                    : "bg-[#161b22] border-[#30363d] text-[#8b949e] hover:border-[#8b949e]"
+                }`}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <span className="material-symbols-outlined text-[16px]">{cat.icon}</span>
+                <span className="text-xs font-medium whitespace-nowrap">{cat.label}</span>
+              </motion.button>
+            ))}
+          </div>
+        </div>
+
         {/* Content */}
         <div className="space-y-2">
           <label className="text-xs font-semibold text-[#8b949e] uppercase tracking-wider">
@@ -228,50 +284,93 @@ export function WriteForm({ projects, initialProjectId }: WriteFormProps) {
           <textarea
             name="content"
             required
-            rows={4}
-            placeholder="오늘의 활동을 기록하세요..."
+            rows={6}
+            defaultValue={defaultContent}
             className="w-full px-4 py-3 bg-[#161b22] border border-[#30363d] rounded-xl text-[#e6edf3] placeholder:text-[#8b949e]/50 focus:outline-none focus:border-[#2ea043] focus:ring-1 focus:ring-[#2ea043] resize-none transition-all"
           />
-        </div>
-
-        {/* Category */}
-        <div className="space-y-3">
-          <label className="text-xs font-semibold text-[#8b949e] uppercase tracking-wider">
-            카테고리
-          </label>
-          <div className="grid grid-cols-3 gap-3">
-            {categories.map((cat) => (
-              <motion.button
-                key={cat.id}
-                type="button"
-                onClick={() => setSelectedCategory(cat.id)}
-                className={`p-4 rounded-xl border flex flex-col items-center gap-2 transition-all ${
-                  selectedCategory === cat.id
-                    ? `${cat.color} border-current`
-                    : "bg-[#161b22] border-[#30363d] text-[#8b949e] hover:border-[#8b949e]"
-                }`}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <span className="material-symbols-outlined text-[24px]">{cat.icon}</span>
-                <span className="text-xs font-medium">{cat.label}</span>
-              </motion.button>
-            ))}
-          </div>
         </div>
 
         {/* Duration */}
         <div className="space-y-2">
           <label className="text-xs font-semibold text-[#8b949e] uppercase tracking-wider">
-            소요 시간 (분) <span className="text-[#8b949e]/50">- 선택</span>
+            소요 시간 (분)
           </label>
           <input
             type="number"
             name="duration_min"
-            min="0"
+            min="1"
+            required
             placeholder="45"
             className="w-full px-4 py-3 bg-[#161b22] border border-[#30363d] rounded-xl text-[#e6edf3] placeholder:text-[#8b949e]/50 focus:outline-none focus:border-[#2ea043] focus:ring-1 focus:ring-[#2ea043] transition-all"
           />
+        </div>
+
+        {/* AI Help Score */}
+        <div className="space-y-3">
+          <label className="text-xs font-semibold text-[#8b949e] uppercase tracking-wider">
+            코딩 도우미가 오늘의 작업에 얼마나 도움이 되었나요?
+          </label>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setAiHelpScore(aiHelpScore === 0 ? null : 0)}
+              className={`px-2 py-1 rounded-lg text-xs transition-all ${
+                aiHelpScore === 0
+                  ? "bg-[#2ea043]/10 border border-[#2ea043] text-[#2ea043]"
+                  : "text-[#8b949e] hover:text-[#e6edf3] border border-transparent"
+              }`}
+            >
+              사용 안함
+            </button>
+            <span className="text-[#30363d] mx-2">|</span>
+            {[1, 2, 3, 4, 5].map((score) => (
+              <button
+                key={score}
+                type="button"
+                onClick={() => setAiHelpScore(score)}
+                className="p-1 transition-all hover:scale-110"
+              >
+                <span
+                  className={`material-symbols-outlined text-[28px] ${
+                    aiHelpScore !== null && aiHelpScore !== 0 && score <= aiHelpScore
+                      ? "text-red-500"
+                      : "text-[#30363d] hover:text-red-500/50"
+                  }`}
+                  style={{ fontVariationSettings: aiHelpScore !== null && aiHelpScore !== 0 && score <= aiHelpScore ? "'FILL' 1" : "'FILL' 0" }}
+                >
+                  favorite
+                </span>
+              </button>
+            ))}
+            {aiHelpScore !== null && aiHelpScore !== 0 && (
+              <span className="ml-2 text-sm text-[#8b949e]">
+                {aiHelpScoreLabels[aiHelpScore]}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Time Saved */}
+        <div className="space-y-3">
+          <label className="text-xs font-semibold text-[#8b949e] uppercase tracking-wider">
+            오늘 수행한 작업을 AI 없이 직접 코딩했다면 시간이 얼마나 더 걸렸을까요?
+          </label>
+          <div className="flex flex-col gap-2">
+            {timeSavedOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setTimeSaved(option.value)}
+                className={`w-full p-3 rounded-xl border text-left text-sm transition-all ${
+                  timeSaved === option.value
+                    ? "bg-[#2ea043]/10 border-[#2ea043] text-[#e6edf3]"
+                    : "bg-[#161b22] border-[#30363d] text-[#8b949e] hover:border-[#8b949e]"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Link URL */}
@@ -369,7 +468,7 @@ export function WriteForm({ projects, initialProjectId }: WriteFormProps) {
         {/* Submit Button */}
         <motion.button
           type="submit"
-          disabled={loading || !selectedCategory || !selectedProjectId}
+          disabled={loading || !selectedCategory || !selectedProjectId || aiHelpScore === null || !timeSaved}
           className="w-full bg-gradient-to-r from-[#2ea043] to-[#3fb950] hover:from-[#25b060] hover:to-[#34a94b] disabled:from-[#2ea043]/50 disabled:to-[#3fb950]/50 disabled:cursor-not-allowed text-white font-bold py-4 px-6 rounded-xl shadow-lg shadow-[#2ea043]/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
           whileHover={{ scale: loading ? 1 : 1.02 }}
           whileTap={{ scale: loading ? 1 : 0.98 }}
