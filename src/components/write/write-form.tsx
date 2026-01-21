@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { createPost } from "@/lib/actions/posts";
+import Image from "next/image";
+import { createPost, uploadImage } from "@/lib/actions/posts";
 import { getProjectColor } from "@/lib/project-colors";
 
 interface Project {
@@ -26,6 +27,12 @@ export function WriteForm({ projects, initialProjectId }: WriteFormProps) {
   const [error, setError] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedProjectId, setSelectedProjectId] = useState(initialProjectId || "");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const categories = [
     { id: "Coding", label: "코딩", icon: "code_blocks", color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
@@ -35,23 +42,112 @@ export function WriteForm({ projects, initialProjectId }: WriteFormProps) {
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
 
+  const handleImageSelect = (file: File) => {
+    // Validate file type
+    const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
+    if (!validTypes.includes(file.type)) {
+      setError("지원하지 않는 파일 형식입니다. (JPG, PNG, GIF, WebP만 가능)");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      setError("파일 크기는 5MB를 초과할 수 없습니다.");
+      return;
+    }
+
+    setImageFile(file);
+    setError("");
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      handleImageSelect(file);
+    }
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleImageSelect(file);
+    }
+  };
+
+  const removeImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    setUploadedImageUrl(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    const formData = new FormData(e.currentTarget);
-    formData.set("category", selectedCategory);
-    if (selectedProjectId) {
-      formData.set("project_id", selectedProjectId);
-    }
-    const result = await createPost(formData);
+    try {
+      // Upload image first if selected
+      let finalImageUrl = uploadedImageUrl;
+      if (imageFile && !uploadedImageUrl) {
+        setUploadingImage(true);
+        const uploadFormData = new FormData();
+        uploadFormData.append("file", imageFile);
+        const uploadResult = await uploadImage(uploadFormData);
+        setUploadingImage(false);
 
-    if (result.error) {
-      setError(result.error);
+        if (uploadResult.error) {
+          setError(uploadResult.error);
+          setLoading(false);
+          return;
+        }
+
+        finalImageUrl = uploadResult.url!;
+        setUploadedImageUrl(finalImageUrl);
+      }
+
+      const formData = new FormData(e.currentTarget);
+      formData.set("category", selectedCategory);
+      if (selectedProjectId) {
+        formData.set("project_id", selectedProjectId);
+      }
+      if (finalImageUrl) {
+        formData.set("image_url", finalImageUrl);
+      }
+
+      const result = await createPost(formData);
+
+      if (result.error) {
+        setError(result.error);
+        setLoading(false);
+      } else {
+        router.push("/");
+      }
+    } catch (err) {
+      setError("게시물 작성에 실패했습니다.");
       setLoading(false);
-    } else {
-      router.push("/");
     }
   }
 
@@ -191,17 +287,72 @@ export function WriteForm({ projects, initialProjectId }: WriteFormProps) {
           />
         </div>
 
-        {/* Image URL */}
+        {/* Image Upload */}
         <div className="space-y-2">
           <label className="text-xs font-semibold text-[#8b949e] uppercase tracking-wider">
-            이미지 URL <span className="text-[#8b949e]/50">- 선택</span>
+            이미지 <span className="text-[#8b949e]/50">- 선택</span>
           </label>
-          <input
-            type="url"
-            name="image_url"
-            placeholder="https://example.com/image.jpg"
-            className="w-full px-4 py-3 bg-[#161b22] border border-[#30363d] rounded-xl text-[#e6edf3] placeholder:text-[#8b949e]/50 focus:outline-none focus:border-[#2ea043] focus:ring-1 focus:ring-[#2ea043] transition-all"
-          />
+
+          {!imagePreview ? (
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+              className={`relative border-2 border-dashed rounded-xl p-8 transition-all cursor-pointer ${
+                isDragging
+                  ? "border-[#2ea043] bg-[#2ea043]/5"
+                  : "border-[#30363d] bg-[#161b22] hover:border-[#8b949e]"
+              }`}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                onChange={handleFileInputChange}
+                className="hidden"
+              />
+              <div className="flex flex-col items-center gap-3 text-center">
+                <span className="material-symbols-outlined text-[48px] text-[#8b949e]">
+                  {isDragging ? "upload" : "add_photo_alternate"}
+                </span>
+                <div>
+                  <p className="text-sm text-[#e6edf3] font-medium mb-1">
+                    {isDragging ? "여기에 이미지를 놓으세요" : "이미지를 드래그 앤 드롭하거나 클릭하여 선택"}
+                  </p>
+                  <p className="text-xs text-[#8b949e]">JPG, PNG, GIF, WebP (최대 5MB)</p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="relative rounded-xl overflow-hidden bg-[#161b22] border border-[#30363d]">
+              <div className="relative w-full aspect-video">
+                <Image
+                  src={imagePreview}
+                  alt="Preview"
+                  fill
+                  className="object-contain"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={removeImage}
+                className="absolute top-2 right-2 bg-[#0d1117]/80 hover:bg-[#0d1117] backdrop-blur-sm text-white rounded-full p-2 transition-colors"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+              {uploadingImage && (
+                <div className="absolute inset-0 bg-[#0d1117]/80 backdrop-blur-sm flex items-center justify-center">
+                  <div className="flex flex-col items-center gap-2">
+                    <span className="material-symbols-outlined animate-spin text-[32px] text-[#2ea043]">
+                      sync
+                    </span>
+                    <p className="text-sm text-[#e6edf3]">업로드 중...</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Error */}

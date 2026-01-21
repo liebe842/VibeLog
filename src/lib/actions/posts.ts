@@ -4,6 +4,61 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { updateStreak } from "./profile";
 
+export async function uploadImage(formData: FormData) {
+  const file = formData.get("file") as File;
+
+  if (!file) {
+    return { error: "파일이 없습니다." };
+  }
+
+  // Validate file type
+  const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
+  if (!validTypes.includes(file.type)) {
+    return { error: "지원하지 않는 파일 형식입니다. (JPG, PNG, GIF, WebP만 가능)" };
+  }
+
+  // Validate file size (max 5MB)
+  const maxSize = 5 * 1024 * 1024;
+  if (file.size > maxSize) {
+    return { error: "파일 크기는 5MB를 초과할 수 없습니다." };
+  }
+
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "로그인이 필요합니다." };
+  }
+
+  // Create unique filename with timestamp
+  const timestamp = Date.now();
+  const fileExt = file.name.split(".").pop();
+  const fileName = `${user.id}/${timestamp}.${fileExt}`;
+
+  // Upload to Supabase Storage
+  const { data, error } = await supabase.storage
+    .from("post-images")
+    .upload(fileName, file, {
+      cacheControl: "3600",
+      upsert: false,
+    });
+
+  if (error) {
+    console.error("Upload error:", error);
+    return { error: "이미지 업로드에 실패했습니다." };
+  }
+
+  // Get public URL
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from("post-images").getPublicUrl(data.path);
+
+  return { success: true, url: publicUrl };
+}
+
 export async function createPost(formData: FormData) {
   const content = formData.get("content") as string;
   const category = formData.get("category") as string;
@@ -177,12 +232,21 @@ export async function deletePost(postId: string) {
 
   const { data: post } = await supabase
     .from("posts")
-    .select("user_id")
+    .select("user_id, image_url")
     .eq("id", postId)
     .single();
 
   if (post?.user_id !== user.id) {
     return { error: "본인의 포스트만 삭제할 수 있습니다." };
+  }
+
+  // Delete image from storage if exists
+  if (post?.image_url && post.image_url.includes("post-images")) {
+    const urlParts = post.image_url.split("/post-images/");
+    if (urlParts.length > 1) {
+      const filePath = urlParts[1];
+      await supabase.storage.from("post-images").remove([filePath]);
+    }
   }
 
   // Delete related comments first

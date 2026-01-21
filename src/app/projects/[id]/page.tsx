@@ -5,6 +5,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ProjectPostList } from "@/components/projects/project-post-list";
 import { ProjectActions } from "@/components/projects/project-actions";
+import { FeatureManager } from "@/components/projects/feature-manager";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -102,6 +103,14 @@ export default async function ProjectDetailPage({ params }: PageProps) {
           </div>
         </div>
       </div>
+
+      {/* Feature Manager */}
+      <FeatureManager
+        projectId={id}
+        initialPlanned={project.features?.planned || []}
+        initialCompleted={project.features?.completed || []}
+        isOwner={isOwner}
+      />
 
       {/* Write Button */}
       {isOwner && (

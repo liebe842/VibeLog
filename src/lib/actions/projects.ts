@@ -335,3 +335,189 @@ export async function getDefaultProject() {
 
   return { project };
 }
+
+// Feature management actions
+export async function addFeature(
+  projectId: string,
+  title: string,
+  type: "planned" | "completed"
+) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "로그인이 필요합니다." };
+  }
+
+  // Get current project
+  const { data: project } = await supabase
+    .from("projects")
+    .select("user_id, features")
+    .eq("id", projectId)
+    .single();
+
+  if (project?.user_id !== user.id) {
+    return { error: "본인의 프로젝트만 수정할 수 있습니다." };
+  }
+
+  const features = project.features || { planned: [], completed: [] };
+  const newFeature = {
+    id: crypto.randomUUID(),
+    title,
+    createdAt: new Date().toISOString(),
+  };
+
+  features[type] = [...(features[type] || []), newFeature];
+
+  const { error } = await supabase
+    .from("projects")
+    .update({ features })
+    .eq("id", projectId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath(`/projects/${projectId}`);
+  return { success: true };
+}
+
+export async function moveFeature(
+  projectId: string,
+  featureId: string,
+  from: "planned" | "completed",
+  to: "planned" | "completed"
+) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "로그인이 필요합니다." };
+  }
+
+  // Get current project
+  const { data: project } = await supabase
+    .from("projects")
+    .select("user_id, features")
+    .eq("id", projectId)
+    .single();
+
+  if (project?.user_id !== user.id) {
+    return { error: "본인의 프로젝트만 수정할 수 있습니다." };
+  }
+
+  const features = project.features || { planned: [], completed: [] };
+  const feature = features[from]?.find((f: any) => f.id === featureId);
+
+  if (!feature) {
+    return { error: "기능을 찾을 수 없습니다." };
+  }
+
+  // Remove from source
+  features[from] = features[from].filter((f: any) => f.id !== featureId);
+
+  // Add to destination
+  features[to] = [...(features[to] || []), feature];
+
+  const { error } = await supabase
+    .from("projects")
+    .update({ features })
+    .eq("id", projectId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath(`/projects/${projectId}`);
+  return { success: true };
+}
+
+export async function deleteFeature(
+  projectId: string,
+  featureId: string,
+  type: "planned" | "completed"
+) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "로그인이 필요합니다." };
+  }
+
+  // Get current project
+  const { data: project } = await supabase
+    .from("projects")
+    .select("user_id, features")
+    .eq("id", projectId)
+    .single();
+
+  if (project?.user_id !== user.id) {
+    return { error: "본인의 프로젝트만 수정할 수 있습니다." };
+  }
+
+  const features = project.features || { planned: [], completed: [] };
+  features[type] = features[type].filter((f: any) => f.id !== featureId);
+
+  const { error } = await supabase
+    .from("projects")
+    .update({ features })
+    .eq("id", projectId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath(`/projects/${projectId}`);
+  return { success: true };
+}
+
+export async function reorderFeatures(
+  projectId: string,
+  type: "planned" | "completed",
+  features: any[]
+) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "로그인이 필요합니다." };
+  }
+
+  // Get current project
+  const { data: project } = await supabase
+    .from("projects")
+    .select("user_id, features")
+    .eq("id", projectId)
+    .single();
+
+  if (project?.user_id !== user.id) {
+    return { error: "본인의 프로젝트만 수정할 수 있습니다." };
+  }
+
+  const updatedFeatures = project.features || { planned: [], completed: [] };
+  updatedFeatures[type] = features;
+
+  const { error } = await supabase
+    .from("projects")
+    .update({ features: updatedFeatures })
+    .eq("id", projectId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath(`/projects/${projectId}`);
+  return { success: true };
+}
