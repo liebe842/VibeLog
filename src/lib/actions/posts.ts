@@ -145,7 +145,12 @@ export async function createPost(formData: FormData) {
   return { success: true };
 }
 
-export async function getPosts(limit = 20, offset = 0) {
+export async function getPosts(
+  limit = 20,
+  offset = 0,
+  search?: string,
+  searchType?: "content" | "user"
+) {
   const supabase = await createClient();
 
   // Get current user if logged in
@@ -153,7 +158,7 @@ export async function getPosts(limit = 20, offset = 0) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: posts, error } = await supabase
+  let query = supabase
     .from("posts")
     .select(
       `
@@ -169,8 +174,19 @@ export async function getPosts(limit = 20, offset = 0) {
       )
     `
     )
-    .order("created_at", { ascending: false })
-    .range(offset, offset + limit - 1);
+    .order("created_at", { ascending: false });
+
+  // Apply search filter
+  if (search && search.trim()) {
+    if (searchType === "user") {
+      // Search by username - need to filter after fetching due to join limitation
+    } else {
+      // Default: search by content
+      query = query.ilike("content", `%${search.trim()}%`);
+    }
+  }
+
+  const { data: posts, error } = await query.range(offset, offset + limit - 1);
 
   if (error) {
     console.error("[getPosts] Error:", error);
@@ -179,9 +195,18 @@ export async function getPosts(limit = 20, offset = 0) {
 
   console.log(`[getPosts] Found ${posts?.length || 0} posts`);
 
+  // Filter by username if searching by user (post-fetch filter due to join)
+  let filteredPosts = posts;
+  if (search && search.trim() && searchType === "user" && posts) {
+    const searchLower = search.trim().toLowerCase();
+    filteredPosts = posts.filter((post: any) =>
+      post.profiles?.username?.toLowerCase().includes(searchLower)
+    );
+  }
+
   // If user is logged in, check which posts they liked
-  if (user && posts) {
-    const postIds = posts.map((p) => p.id);
+  if (user && filteredPosts) {
+    const postIds = filteredPosts.map((p: any) => p.id);
     const { data: likes } = await supabase
       .from("likes")
       .select("post_id")
@@ -190,16 +215,16 @@ export async function getPosts(limit = 20, offset = 0) {
 
     const likedPostIds = new Set(likes?.map((l) => l.post_id) || []);
 
-    const postsWithLikeStatus = posts.map((post) => ({
+    const postsWithLikeStatus = filteredPosts.map((post: any) => ({
       ...post,
       liked_by_user: likedPostIds.has(post.id),
-      likes: post.likes_count || post.likes || 0, // Use likes_count if available
+      likes: post.likes_count || post.likes || 0,
     }));
 
     return { posts: postsWithLikeStatus };
   }
 
-  return { posts };
+  return { posts: filteredPosts };
 }
 
 export async function getUserPosts(userId: string) {
@@ -345,6 +370,32 @@ export async function likePost(postId: string) {
     revalidatePath("/");
     return { success: true, liked: true };
   }
+}
+
+export async function getPostLikers(postId: string) {
+  const supabase = await createClient();
+
+  const { data: likes, error } = await supabase
+    .from("likes")
+    .select(
+      `
+      profiles:user_id (
+        username
+      )
+    `
+    )
+    .eq("post_id", postId)
+    .limit(10);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  const usernames = likes
+    ?.map((like: any) => like.profiles?.username)
+    .filter(Boolean) as string[];
+
+  return { usernames };
 }
 
 export async function updatePost(postId: string, formData: FormData) {

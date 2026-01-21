@@ -3,8 +3,16 @@ import { getCurrentUserProfile } from "@/lib/actions/profile";
 import { calculateChallengeProgress } from "@/lib/actions/challenge";
 import { FeedList } from "@/components/feed/feed-list";
 
-export default async function HomePage() {
-  const result = await getPosts(20);
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ search?: string; type?: string }>;
+}) {
+  const params = await searchParams;
+  const search = params.search;
+  const searchType = (params.type === "user" ? "user" : "content") as "content" | "user";
+
+  const result = await getPosts(20, 0, search, searchType);
   const posts = result.posts || [];
 
   // Get challenge progress
@@ -34,7 +42,15 @@ export default async function HomePage() {
 
   return (
     <main className="flex flex-col gap-6 p-4 md:p-6 lg:p-8 max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto w-full pb-24 md:pb-8">
-      <FeedList posts={posts} stats={stats} currentUserId={currentUserId} isAdmin={isAdmin} />
+      <FeedList
+        key={`feed-${search || 'all'}-${searchType}`}
+        posts={posts}
+        stats={stats}
+        currentUserId={currentUserId}
+        isAdmin={isAdmin}
+        initialSearch={search}
+        initialSearchType={searchType}
+      />
     </main>
   );
 }

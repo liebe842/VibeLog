@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { deletePost, likePost } from "@/lib/actions/posts";
+import { deletePost, likePost, getPostLikers } from "@/lib/actions/posts";
 import { getComments } from "@/lib/actions/comments";
 import { useRouter } from "next/navigation";
 import { CommentSection } from "@/components/comments/comment-section";
@@ -76,6 +76,84 @@ const itemVariants = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
 };
+
+function LikeButton({
+  postId,
+  likes,
+  likedByUser,
+  onLike,
+}: {
+  postId: string;
+  likes: number;
+  likedByUser?: boolean;
+  onLike: () => void;
+}) {
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [likers, setLikers] = useState<string[] | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function handleMouseEnter() {
+    if (likes === 0) return;
+    setShowTooltip(true);
+    if (likers === null && !loading) {
+      setLoading(true);
+      const result = await getPostLikers(postId);
+      if (result.usernames) {
+        setLikers(result.usernames);
+      }
+      setLoading(false);
+    }
+  }
+
+  function handleMouseLeave() {
+    setShowTooltip(false);
+  }
+
+  return (
+    <div className="relative">
+      <motion.button
+        onClick={onLike}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        className={`flex items-center gap-1.5 transition-colors group ${
+          likedByUser ? "text-[#3fb950]" : "text-[#8b949e] hover:text-[#3fb950]"
+        }`}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+      >
+        <span className="material-symbols-outlined text-[18px] group-hover:scale-110 transition-transform">
+          thumb_up
+        </span>
+        <span className="text-xs font-medium">{likes || 0}</span>
+      </motion.button>
+      {showTooltip && likes > 0 && (
+        <div className="absolute bottom-full left-0 mb-2 z-50">
+          <div className="bg-[#21262d] border border-[#30363d] rounded-lg px-3 py-2 shadow-lg min-w-[120px]">
+            {loading ? (
+              <span className="text-[#8b949e] text-xs">로딩 중...</span>
+            ) : likers && likers.length > 0 ? (
+              <div className="flex flex-col gap-1">
+                {likers.map((username, idx) => (
+                  <span key={idx} className="text-[#e6edf3] text-xs">
+                    {username}
+                  </span>
+                ))}
+                {likes > likers.length && (
+                  <span className="text-[#8b949e] text-xs">
+                    외 {likes - likers.length}명
+                  </span>
+                )}
+              </div>
+            ) : (
+              <span className="text-[#8b949e] text-xs">좋아요 {likes}개</span>
+            )}
+          </div>
+          <div className="absolute left-4 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-[#30363d]" />
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function ProjectPostList({ posts, currentUserId, isAdmin }: ProjectPostListProps) {
   const router = useRouter();
@@ -197,7 +275,7 @@ export function ProjectPostList({ posts, currentUserId, isAdmin }: ProjectPostLi
             )}
           </div>
 
-          <p className="text-[#e6edf3] text-sm leading-relaxed">{post.content}</p>
+          <p className="text-[#e6edf3] text-sm leading-relaxed whitespace-pre-wrap">{post.content}</p>
 
           {post.image_url && (
             <img
@@ -220,21 +298,12 @@ export function ProjectPostList({ posts, currentUserId, isAdmin }: ProjectPostLi
           )}
 
           <div className="flex items-center gap-6 pt-2 border-t border-[#30363d]/50 mt-1">
-            <motion.button
-              onClick={() => handleLike(post.id)}
-              className={`flex items-center gap-1.5 transition-colors group ${
-                post.liked_by_user
-                  ? "text-[#3fb950]"
-                  : "text-[#8b949e] hover:text-[#3fb950]"
-              }`}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <span className="material-symbols-outlined text-[18px] group-hover:scale-110 transition-transform">
-                thumb_up
-              </span>
-              <span className="text-xs font-medium">{post.likes || 0}</span>
-            </motion.button>
+            <LikeButton
+              postId={post.id}
+              likes={post.likes}
+              likedByUser={post.liked_by_user}
+              onLike={() => handleLike(post.id)}
+            />
             <motion.button
               onClick={() => handleToggleComments(post.id)}
               className="flex items-center gap-1.5 text-[#8b949e] hover:text-[#58a6ff] transition-colors group"

@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { deletePost, likePost } from "@/lib/actions/posts";
+import { deletePost, likePost, getPostLikers } from "@/lib/actions/posts";
 import { getComments } from "@/lib/actions/comments";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { CommentSection } from "@/components/comments/comment-section";
 import { PostEditModal } from "@/components/feed/post-edit-modal";
 import { getProjectColor } from "@/lib/project-colors";
@@ -47,6 +47,8 @@ interface FeedListProps {
   };
   currentUserId?: string;
   isAdmin?: boolean;
+  initialSearch?: string;
+  initialSearchType?: "content" | "user";
 }
 
 const categoryColors: Record<string, string> = {
@@ -152,12 +154,205 @@ function ProgressCard({ stats }: { stats?: FeedListProps["stats"] }) {
   );
 }
 
-export function FeedList({ posts, stats, currentUserId, isAdmin }: FeedListProps) {
+function LikeButton({
+  postId,
+  likes,
+  likedByUser,
+  onLike,
+}: {
+  postId: string;
+  likes: number;
+  likedByUser?: boolean;
+  onLike: () => void;
+}) {
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [likers, setLikers] = useState<string[] | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function handleMouseEnter() {
+    if (likes === 0) return;
+    setShowTooltip(true);
+    if (likers === null && !loading) {
+      setLoading(true);
+      const result = await getPostLikers(postId);
+      if (result.usernames) {
+        setLikers(result.usernames);
+      }
+      setLoading(false);
+    }
+  }
+
+  function handleMouseLeave() {
+    setShowTooltip(false);
+  }
+
+  return (
+    <div className="relative">
+      <motion.button
+        onClick={onLike}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        className={`flex items-center gap-1.5 transition-colors group ${
+          likedByUser ? "text-[#3fb950]" : "text-[#8b949e] hover:text-[#3fb950]"
+        }`}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+      >
+        <span className="material-symbols-outlined text-[18px] group-hover:scale-110 transition-transform">
+          thumb_up
+        </span>
+        <span className="text-xs font-medium">{likes || 0}</span>
+      </motion.button>
+      {showTooltip && likes > 0 && (
+        <div className="absolute bottom-full left-0 mb-2 z-50">
+          <div className="bg-[#21262d] border border-[#30363d] rounded-lg px-3 py-2 shadow-lg min-w-[120px]">
+            {loading ? (
+              <span className="text-[#8b949e] text-xs">로딩 중...</span>
+            ) : likers && likers.length > 0 ? (
+              <div className="flex flex-col gap-1">
+                {likers.map((username, idx) => (
+                  <span key={idx} className="text-[#e6edf3] text-xs">
+                    {username}
+                  </span>
+                ))}
+                {likes > likers.length && (
+                  <span className="text-[#8b949e] text-xs">
+                    외 {likes - likers.length}명
+                  </span>
+                )}
+              </div>
+            ) : (
+              <span className="text-[#8b949e] text-xs">좋아요 {likes}개</span>
+            )}
+          </div>
+          <div className="absolute left-4 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-[#30363d]" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SearchBar({
+  initialSearch,
+  initialSearchType,
+}: {
+  initialSearch?: string;
+  initialSearchType?: "content" | "user";
+}) {
+  const router = useRouter();
+  const [searchType, setSearchType] = useState<"content" | "user">(initialSearchType || "content");
+  const [searchQuery, setSearchQuery] = useState(initialSearch || "");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  // Sync searchQuery with initialSearch prop (e.g., when navigating to "/" to clear search)
+  useEffect(() => {
+    setSearchQuery(initialSearch || "");
+  }, [initialSearch]);
+
+  const searchTypeLabels = {
+    content: "내용",
+    user: "사용자",
+  };
+
+  function handleSearch(e: React.FormEvent) {
+    e.preventDefault();
+    const params = new URLSearchParams();
+    if (searchQuery.trim()) {
+      params.set("search", searchQuery.trim());
+      params.set("type", searchType);
+    }
+    router.push(`/?${params.toString()}`);
+  }
+
+  function handleClear() {
+    setSearchQuery("");
+    router.push("/");
+    router.refresh();
+  }
+
+  return (
+    <form onSubmit={handleSearch} className="flex gap-2 mb-4">
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+          className="flex items-center gap-1 px-3 py-2 bg-[#21262d] border border-[#30363d] rounded-lg text-[#e6edf3] text-sm hover:border-[#8b949e] transition-colors min-w-[90px]"
+        >
+          <span>{searchTypeLabels[searchType]}</span>
+          <span className="material-symbols-outlined text-[16px]">expand_more</span>
+        </button>
+        {isDropdownOpen && (
+          <div className="absolute top-full left-0 mt-1 bg-[#21262d] border border-[#30363d] rounded-lg shadow-lg z-50 min-w-[90px]">
+            <button
+              type="button"
+              onClick={() => {
+                setSearchType("content");
+                setIsDropdownOpen(false);
+              }}
+              className={`w-full px-3 py-2 text-left text-sm hover:bg-[#30363d] transition-colors ${
+                searchType === "content" ? "text-[#3fb950]" : "text-[#e6edf3]"
+              }`}
+            >
+              내용
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSearchType("user");
+                setIsDropdownOpen(false);
+              }}
+              className={`w-full px-3 py-2 text-left text-sm hover:bg-[#30363d] transition-colors ${
+                searchType === "user" ? "text-[#3fb950]" : "text-[#e6edf3]"
+              }`}
+            >
+              사용자
+            </button>
+          </div>
+        )}
+      </div>
+      <div className="flex-1 relative">
+        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#8b949e] text-[18px]">
+          search
+        </span>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder={searchType === "user" ? "사용자 이름 검색..." : "내용 검색..."}
+          className="w-full pl-9 pr-8 py-2 bg-[#21262d] border border-[#30363d] rounded-lg text-[#e6edf3] text-sm placeholder:text-[#8b949e]/50 focus:outline-none focus:border-[#2ea043] transition-colors"
+        />
+        {searchQuery && (
+          <button
+            type="button"
+            onClick={handleClear}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-[#8b949e] hover:text-[#e6edf3] transition-colors"
+          >
+            <span className="material-symbols-outlined text-[16px]">close</span>
+          </button>
+        )}
+      </div>
+      <button
+        type="submit"
+        className="px-4 py-2 bg-[#2ea043] hover:bg-[#3fb950] text-white text-sm font-medium rounded-lg transition-colors"
+      >
+        검색
+      </button>
+    </form>
+  );
+}
+
+export function FeedList({ posts, stats, currentUserId, isAdmin, initialSearch, initialSearchType }: FeedListProps) {
   const router = useRouter();
   const [localPosts, setLocalPosts] = useState(posts);
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [commentsData, setCommentsData] = useState<Record<string, any[]>>({});
   const [editingPost, setEditingPost] = useState<Post | null>(null);
+
+  // Update localPosts when posts prop changes (e.g., after search)
+  // Using JSON.stringify to detect deep changes in the posts array
+  useEffect(() => {
+    setLocalPosts(posts);
+  }, [JSON.stringify(posts.map(p => p.id))]);
 
   async function handleDelete(postId: string) {
     if (!confirm("정말 삭제하시겠습니까?")) return;
@@ -232,15 +427,37 @@ export function FeedList({ posts, stats, currentUserId, isAdmin }: FeedListProps
       <div className="flex flex-col gap-4">
         <h3 className="text-[#e6edf3] text-sm font-semibold px-1">커뮤니티 활동</h3>
 
+        <SearchBar initialSearch={initialSearch} initialSearchType={initialSearchType} />
+
+        {initialSearch && (
+          <div className="flex items-center justify-between text-sm text-[#8b949e] px-1">
+            <span>&quot;{initialSearch}&quot; 검색 결과: {localPosts.length}개</span>
+            <button
+              onClick={() => {
+                router.push("/");
+                router.refresh();
+              }}
+              className="text-[#58a6ff] hover:underline flex items-center gap-1"
+            >
+              <span className="material-symbols-outlined text-[14px]">arrow_back</span>
+              전체 보기
+            </button>
+          </div>
+        )}
+
         {localPosts.length === 0 ? (
           <motion.article
             className="bg-[#161b22] border border-[#30363d] rounded-md p-6 text-center"
             variants={itemVariants}
           >
-            <p className="text-[#8b949e] mb-4">아직 등록된 활동이 없습니다.</p>
-            <Link href="/write" className="text-[#2ea043] hover:underline font-medium">
-              첫 번째 활동을 기록해보세요! →
-            </Link>
+            <p className="text-[#8b949e] mb-4">
+              {initialSearch ? "검색 결과가 없습니다." : "아직 등록된 활동이 없습니다."}
+            </p>
+            {!initialSearch && (
+              <Link href="/write" className="text-[#2ea043] hover:underline font-medium">
+                첫 번째 활동을 기록해보세요! →
+              </Link>
+            )}
           </motion.article>
         ) : (
           localPosts.map((post) => (
@@ -306,7 +523,7 @@ export function FeedList({ posts, stats, currentUserId, isAdmin }: FeedListProps
                 )}
               </div>
 
-              <p className="text-[#e6edf3] text-sm leading-relaxed">{post.content}</p>
+              <p className="text-[#e6edf3] text-sm leading-relaxed whitespace-pre-wrap">{post.content}</p>
 
               {post.image_url && (
                 <img
@@ -329,21 +546,12 @@ export function FeedList({ posts, stats, currentUserId, isAdmin }: FeedListProps
               )}
 
               <div className="flex items-center gap-6 pt-2 border-t border-[#30363d]/50 mt-1">
-                <motion.button
-                  onClick={() => handleLike(post.id)}
-                  className={`flex items-center gap-1.5 transition-colors group ${
-                    post.liked_by_user
-                      ? "text-[#3fb950]"
-                      : "text-[#8b949e] hover:text-[#3fb950]"
-                  }`}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <span className="material-symbols-outlined text-[18px] group-hover:scale-110 transition-transform">
-                    {post.liked_by_user ? "thumb_up" : "thumb_up"}
-                  </span>
-                  <span className="text-xs font-medium">{post.likes || 0}</span>
-                </motion.button>
+                <LikeButton
+                  postId={post.id}
+                  likes={post.likes}
+                  likedByUser={post.liked_by_user}
+                  onLike={() => handleLike(post.id)}
+                />
                 <motion.button
                   onClick={() => handleToggleComments(post.id)}
                   className="flex items-center gap-1.5 text-[#8b949e] hover:text-[#58a6ff] transition-colors group"
