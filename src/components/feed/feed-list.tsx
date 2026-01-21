@@ -271,25 +271,25 @@ function SearchBar({
   }
 
   return (
-    <form onSubmit={handleSearch} className="flex gap-2 mb-4">
+    <form onSubmit={handleSearch} className="flex gap-1.5 sm:gap-2">
       <div className="relative">
         <button
           type="button"
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          className="flex items-center gap-1 px-3 py-2 bg-[#21262d] border border-[#30363d] rounded-lg text-[#e6edf3] text-sm hover:border-[#8b949e] transition-colors min-w-[90px]"
+          className="flex items-center gap-0.5 px-2 sm:px-3 py-1.5 sm:py-2 bg-[#21262d] border border-[#30363d] rounded-lg text-[#e6edf3] text-xs sm:text-sm hover:border-[#8b949e] transition-colors"
         >
           <span>{searchTypeLabels[searchType]}</span>
-          <span className="material-symbols-outlined text-[16px]">expand_more</span>
+          <span className="material-symbols-outlined text-[14px] sm:text-[16px]">expand_more</span>
         </button>
         {isDropdownOpen && (
-          <div className="absolute top-full left-0 mt-1 bg-[#21262d] border border-[#30363d] rounded-lg shadow-lg z-50 min-w-[90px]">
+          <div className="absolute top-full left-0 mt-1 bg-[#21262d] border border-[#30363d] rounded-lg shadow-lg z-50 min-w-[80px]">
             <button
               type="button"
               onClick={() => {
                 setSearchType("content");
                 setIsDropdownOpen(false);
               }}
-              className={`w-full px-3 py-2 text-left text-sm hover:bg-[#30363d] transition-colors ${
+              className={`w-full px-3 py-2 text-left text-xs sm:text-sm hover:bg-[#30363d] transition-colors ${
                 searchType === "content" ? "text-[#3fb950]" : "text-[#e6edf3]"
               }`}
             >
@@ -301,7 +301,7 @@ function SearchBar({
                 setSearchType("user");
                 setIsDropdownOpen(false);
               }}
-              className={`w-full px-3 py-2 text-left text-sm hover:bg-[#30363d] transition-colors ${
+              className={`w-full px-3 py-2 text-left text-xs sm:text-sm hover:bg-[#30363d] transition-colors ${
                 searchType === "user" ? "text-[#3fb950]" : "text-[#e6edf3]"
               }`}
             >
@@ -310,30 +310,30 @@ function SearchBar({
           </div>
         )}
       </div>
-      <div className="flex-1 relative">
-        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#8b949e] text-[18px]">
+      <div className="relative w-24 sm:w-32 md:w-40">
+        <span className="material-symbols-outlined absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 text-[#8b949e] text-[16px] sm:text-[18px]">
           search
         </span>
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder={searchType === "user" ? "사용자 이름 검색..." : "내용 검색..."}
-          className="w-full pl-9 pr-8 py-2 bg-[#21262d] border border-[#30363d] rounded-lg text-[#e6edf3] text-sm placeholder:text-[#8b949e]/50 focus:outline-none focus:border-[#2ea043] transition-colors"
+          placeholder="검색..."
+          className="w-full pl-7 sm:pl-9 pr-6 sm:pr-8 py-1.5 sm:py-2 bg-[#21262d] border border-[#30363d] rounded-lg text-[#e6edf3] text-xs sm:text-sm placeholder:text-[#8b949e]/50 focus:outline-none focus:border-[#2ea043] transition-colors"
         />
         {searchQuery && (
           <button
             type="button"
             onClick={handleClear}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-[#8b949e] hover:text-[#e6edf3] transition-colors"
+            className="absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 text-[#8b949e] hover:text-[#e6edf3] transition-colors"
           >
-            <span className="material-symbols-outlined text-[16px]">close</span>
+            <span className="material-symbols-outlined text-[14px] sm:text-[16px]">close</span>
           </button>
         )}
       </div>
       <button
         type="submit"
-        className="px-4 py-2 bg-[#2ea043] hover:bg-[#3fb950] text-white text-sm font-medium rounded-lg transition-colors"
+        className="px-2 sm:px-3 py-1.5 sm:py-2 bg-[#2ea043] hover:bg-[#3fb950] text-white text-xs sm:text-sm font-medium rounded-lg transition-colors"
       >
         검색
       </button>
@@ -425,9 +425,10 @@ export function FeedList({ posts, stats, currentUserId, isAdmin, initialSearch, 
       <ProgressCard stats={stats} />
 
       <div className="flex flex-col gap-4">
-        <h3 className="text-[#e6edf3] text-sm font-semibold px-1">커뮤니티 활동</h3>
-
-        <SearchBar initialSearch={initialSearch} initialSearchType={initialSearchType} />
+        <div className="flex items-center justify-between px-1">
+          <h3 className="text-[#e6edf3] text-base font-semibold">커뮤니티 활동</h3>
+          <SearchBar initialSearch={initialSearch} initialSearchType={initialSearchType} />
+        </div>
 
         {initialSearch && (
           <div className="flex items-center justify-between text-sm text-[#8b949e] px-1">
