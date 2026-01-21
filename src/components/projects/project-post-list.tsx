@@ -21,6 +21,9 @@ interface Post {
   created_at: string;
   user_id: string;
   liked_by_user?: boolean;
+  project_id?: string;
+  ai_help_score?: number | null;
+  time_saved?: string | null;
   profiles?: {
     username: string;
     level?: number;
@@ -28,28 +31,52 @@ interface Post {
   };
 }
 
+interface Project {
+  id: string;
+  title: string;
+  status?: string;
+  color?: string;
+  icon?: string;
+}
+
 interface ProjectPostListProps {
   posts: Post[];
   currentUserId?: string;
   isAdmin?: boolean;
+  projects?: Project[];
 }
 
 const categoryBorderColors: Record<string, string> = {
+  Planning: "border-l-blue-500",
+  Development: "border-l-green-500",
+  Design: "border-l-purple-500",
+  Debug: "border-l-orange-500",
+  Other: "border-l-gray-500",
+  // Legacy
   Coding: "border-l-blue-500",
   Study: "border-l-purple-500",
-  Debug: "border-l-orange-500",
 };
 
 const categoryBadgeColors: Record<string, string> = {
+  Planning: "border-blue-500/30 text-blue-400 bg-blue-500/10",
+  Development: "border-green-500/30 text-green-400 bg-green-500/10",
+  Design: "border-purple-500/30 text-purple-400 bg-purple-500/10",
+  Debug: "border-orange-500/30 text-orange-400 bg-orange-500/10",
+  Other: "border-gray-500/30 text-gray-400 bg-gray-500/10",
+  // Legacy
   Coding: "border-blue-500/30 text-blue-400 bg-blue-500/10",
   Study: "border-purple-500/30 text-purple-400 bg-purple-500/10",
-  Debug: "border-orange-500/30 text-orange-400 bg-orange-500/10",
 };
 
 const categoryLabels: Record<string, string> = {
+  Planning: "기획 및 PRD 작성",
+  Development: "핵심 기능 구현",
+  Design: "UI 디자인 및 개선",
+  Debug: "디버깅 및 배포",
+  Other: "기타",
+  // Legacy
   Coding: "코딩",
   Study: "공부",
-  Debug: "디버그",
 };
 
 function formatTimeAgo(dateString: string) {
@@ -155,7 +182,7 @@ function LikeButton({
   );
 }
 
-export function ProjectPostList({ posts, currentUserId, isAdmin }: ProjectPostListProps) {
+export function ProjectPostList({ posts, currentUserId, isAdmin, projects = [] }: ProjectPostListProps) {
   const router = useRouter();
   const [localPosts, setLocalPosts] = useState(posts);
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
@@ -347,7 +374,11 @@ export function ProjectPostList({ posts, currentUserId, isAdmin }: ProjectPostLi
             duration_min: editingPost.duration_min,
             link_url: editingPost.link_url,
             image_url: editingPost.image_url,
+            project_id: editingPost.project_id,
+            ai_help_score: editingPost.ai_help_score,
+            time_saved: editingPost.time_saved,
           }}
+          projects={projects}
         />
       )}
     </motion.div>

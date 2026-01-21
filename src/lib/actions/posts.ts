@@ -66,9 +66,23 @@ export async function createPost(formData: FormData) {
   const linkUrl = formData.get("link_url") as string;
   const imageUrl = formData.get("image_url") as string;
   const projectId = formData.get("project_id") as string;
+  const aiHelpScore = formData.get("ai_help_score") as string;
+  const timeSaved = formData.get("time_saved") as string;
 
   if (!content || !category) {
     return { error: "내용과 카테고리는 필수입니다." };
+  }
+
+  if (!durationMin || parseInt(durationMin) < 1) {
+    return { error: "소요 시간을 입력해주세요." };
+  }
+
+  if (aiHelpScore === null || aiHelpScore === "") {
+    return { error: "AI 도움 점수를 선택해주세요." };
+  }
+
+  if (!timeSaved) {
+    return { error: "시간 절약 정도를 선택해주세요." };
   }
 
   const supabase = await createClient();
@@ -91,6 +105,8 @@ export async function createPost(formData: FormData) {
     link_url: linkUrl || null,
     image_url: imageUrl || null,
     project_id: projectId || null,
+    ai_help_score: parseInt(aiHelpScore),
+    time_saved: timeSaved,
   });
 
   if (error) {
@@ -404,6 +420,9 @@ export async function updatePost(postId: string, formData: FormData) {
   const durationMin = formData.get("duration_min") as string;
   const linkUrl = formData.get("link_url") as string;
   const imageUrl = formData.get("image_url") as string;
+  const projectId = formData.get("project_id") as string;
+  const aiHelpScore = formData.get("ai_help_score") as string;
+  const timeSaved = formData.get("time_saved") as string;
 
   if (!content || !category) {
     return { error: "내용과 카테고리는 필수입니다." };
@@ -447,6 +466,9 @@ export async function updatePost(postId: string, formData: FormData) {
       duration_min: durationMin ? parseInt(durationMin) : 0,
       link_url: linkUrl || null,
       image_url: imageUrl || null,
+      project_id: projectId || null,
+      ai_help_score: aiHelpScore ? parseInt(aiHelpScore) : null,
+      time_saved: timeSaved || null,
     })
     .eq("id", postId);
 

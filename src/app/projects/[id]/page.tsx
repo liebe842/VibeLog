@@ -1,4 +1,4 @@
-import { getProject, getProjectPosts } from "@/lib/actions/projects";
+import { getProject, getProjectPosts, getMyProjects } from "@/lib/actions/projects";
 import { getCurrentUserProfile } from "@/lib/actions/profile";
 import { getProjectColor } from "@/lib/project-colors";
 import Link from "next/link";
@@ -28,11 +28,15 @@ export default async function ProjectDetailPage({ params }: PageProps) {
 
   let currentUserId: string | undefined;
   let isAdmin = false;
+  let userProjects: any[] = [];
   try {
     const profileResult = await getCurrentUserProfile();
     if (profileResult.profile) {
       currentUserId = profileResult.profile.id;
       isAdmin = profileResult.profile.role === "admin";
+      // Get user's projects for the edit modal
+      const projectsResult = await getMyProjects();
+      userProjects = projectsResult.projects || [];
     }
   } catch {
     // Not logged in
@@ -138,7 +142,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
             )}
           </div>
         ) : (
-          <ProjectPostList posts={posts} currentUserId={currentUserId} isAdmin={isAdmin} />
+          <ProjectPostList posts={posts} currentUserId={currentUserId} isAdmin={isAdmin} projects={userProjects} />
         )}
       </div>
     </main>

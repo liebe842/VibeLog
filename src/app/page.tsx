@@ -1,6 +1,7 @@
 import { getPosts } from "@/lib/actions/posts";
 import { getCurrentUserProfile } from "@/lib/actions/profile";
 import { calculateChallengeProgress } from "@/lib/actions/challenge";
+import { getMyProjects } from "@/lib/actions/projects";
 import { FeedList } from "@/components/feed/feed-list";
 
 export default async function HomePage({
@@ -22,6 +23,7 @@ export default async function HomePage({
   let stats;
   let currentUserId;
   let isAdmin = false;
+  let projects: any[] = [];
   try {
     const profileResult = await getCurrentUserProfile();
     if (profileResult.profile) {
@@ -35,6 +37,9 @@ export default async function HomePage({
         writtenDays: challengeProgress.writtenDays,
         requiredDays: challengeProgress.requiredDays,
       };
+      // Get user's projects for the edit modal
+      const projectsResult = await getMyProjects();
+      projects = projectsResult.projects || [];
     }
   } catch {
     // Not logged in, that's ok
@@ -50,6 +55,7 @@ export default async function HomePage({
         isAdmin={isAdmin}
         initialSearch={search}
         initialSearchType={searchType}
+        projects={projects}
       />
     </main>
   );
