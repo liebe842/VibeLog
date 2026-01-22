@@ -129,6 +129,10 @@ export function WriteForm({ projects, initialProjectId }: WriteFormProps) {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
+    // FormData를 비동기 작업 전에 먼저 생성
+    const formData = new FormData(e.currentTarget);
+
     setLoading(true);
     setError("");
 
@@ -151,8 +155,6 @@ export function WriteForm({ projects, initialProjectId }: WriteFormProps) {
         finalImageUrl = uploadResult.url!;
         setUploadedImageUrl(finalImageUrl);
       }
-
-      const formData = new FormData(e.currentTarget);
       formData.set("category", selectedCategory);
       if (selectedProjectId) {
         formData.set("project_id", selectedProjectId);
@@ -176,7 +178,8 @@ export function WriteForm({ projects, initialProjectId }: WriteFormProps) {
         router.push("/");
       }
     } catch (err) {
-      setError("게시물 작성에 실패했습니다.");
+      console.error("게시물 작성 에러:", err);
+      setError(err instanceof Error ? err.message : "게시물 작성에 실패했습니다.");
       setLoading(false);
     }
   }
