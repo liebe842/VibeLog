@@ -4,6 +4,97 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { updateStreak } from "./profile";
 
+// OG Metadata type
+export interface OGMetadata {
+  ogTitle: string | null;
+  ogDescription: string | null;
+  ogImage: string | null;
+  ogSiteName: string | null;
+}
+
+// Fetch Open Graph metadata from a URL
+export async function fetchOGMetadata(url: string): Promise<OGMetadata> {
+  const defaultMetadata: OGMetadata = {
+    ogTitle: null,
+    ogDescription: null,
+    ogImage: null,
+    ogSiteName: null,
+  };
+
+  if (!url) return defaultMetadata;
+
+  try {
+    // Validate URL
+    const parsedUrl = new URL(url);
+    if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+      return defaultMetadata;
+    }
+
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; VibeLog/1.0; +https://vibelog.app)",
+        Accept: "text/html,application/xhtml+xml",
+      },
+      signal: AbortSignal.timeout(5000), // 5 second timeout
+    });
+
+    if (!response.ok) return defaultMetadata;
+
+    const html = await response.text();
+
+    // Parse OG meta tags using regex (lightweight, no dependencies)
+    const getMetaContent = (property: string): string | null => {
+      // Match og:property or property
+      const patterns = [
+        new RegExp(`<meta[^>]*property=["']og:${property}["'][^>]*content=["']([^"']*)["']`, "i"),
+        new RegExp(`<meta[^>]*content=["']([^"']*)["'][^>]*property=["']og:${property}["']`, "i"),
+        new RegExp(`<meta[^>]*name=["']og:${property}["'][^>]*content=["']([^"']*)["']`, "i"),
+        new RegExp(`<meta[^>]*content=["']([^"']*)["'][^>]*name=["']og:${property}["']`, "i"),
+      ];
+
+      for (const pattern of patterns) {
+        const match = html.match(pattern);
+        if (match?.[1]) return match[1];
+      }
+      return null;
+    };
+
+    // Fallback to title tag if no og:title
+    const getTitleFallback = (): string | null => {
+      const match = html.match(/<title[^>]*>([^<]*)<\/title>/i);
+      return match?.[1]?.trim() || null;
+    };
+
+    // Fallback to meta description if no og:description
+    const getDescriptionFallback = (): string | null => {
+      const patterns = [
+        /<meta[^>]*name=["']description["'][^>]*content=["']([^"']*)["']/i,
+        /<meta[^>]*content=["']([^"']*)["'][^>]*name=["']description["']/i,
+      ];
+      for (const pattern of patterns) {
+        const match = html.match(pattern);
+        if (match?.[1]) return match[1];
+      }
+      return null;
+    };
+
+    const ogTitle = getMetaContent("title") || getTitleFallback();
+    const ogDescription = getMetaContent("description") || getDescriptionFallback();
+    const ogImage = getMetaContent("image");
+    const ogSiteName = getMetaContent("site_name") || parsedUrl.hostname;
+
+    return {
+      ogTitle,
+      ogDescription,
+      ogImage,
+      ogSiteName,
+    };
+  } catch (error) {
+    console.error("[fetchOGMetadata] Error fetching OG metadata:", error);
+    return defaultMetadata;
+  }
+}
+
 export async function uploadImage(formData: FormData) {
   const file = formData.get("file") as File;
 
@@ -96,6 +187,18 @@ export async function createPost(formData: FormData) {
     return { error: "로그인이 필요합니다." };
   }
 
+  // Fetch OG metadata if link URL is provided
+  let ogMetadata: OGMetadata = {
+    ogTitle: null,
+    ogDescription: null,
+    ogImage: null,
+    ogSiteName: null,
+  };
+
+  if (linkUrl) {
+    ogMetadata = await fetchOGMetadata(linkUrl);
+  }
+
   // Insert post
   const { error } = await supabase.from("posts").insert({
     user_id: user.id,
@@ -107,6 +210,10 @@ export async function createPost(formData: FormData) {
     project_id: projectId || null,
     ai_help_score: parseInt(aiHelpScore),
     time_saved: timeSaved,
+    og_title: ogMetadata.ogTitle,
+    og_description: ogMetadata.ogDescription,
+    og_image: ogMetadata.ogImage,
+    og_site_name: ogMetadata.ogSiteName,
   });
 
   if (error) {
@@ -458,6 +565,18 @@ export async function updatePost(postId: string, formData: FormData) {
     return { error: "본인의 포스트만 수정할 수 있습니다." };
   }
 
+  // Fetch OG metadata if link URL is provided
+  let ogMetadata: OGMetadata = {
+    ogTitle: null,
+    ogDescription: null,
+    ogImage: null,
+    ogSiteName: null,
+  };
+
+  if (linkUrl) {
+    ogMetadata = await fetchOGMetadata(linkUrl);
+  }
+
   const { error } = await supabase
     .from("posts")
     .update({
@@ -469,6 +588,10 @@ export async function updatePost(postId: string, formData: FormData) {
       project_id: projectId || null,
       ai_help_score: aiHelpScore ? parseInt(aiHelpScore) : null,
       time_saved: timeSaved || null,
+      og_title: ogMetadata.ogTitle,
+      og_description: ogMetadata.ogDescription,
+      og_image: ogMetadata.ogImage,
+      og_site_name: ogMetadata.ogSiteName,
     })
     .eq("id", postId);
 

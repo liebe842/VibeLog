@@ -8,6 +8,7 @@ import { getComments } from "@/lib/actions/comments";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CommentSection } from "@/components/comments/comment-section";
 import { PostEditModal } from "@/components/feed/post-edit-modal";
+import { LinkPreviewCard } from "@/components/feed/link-preview-card";
 import { getProjectColor } from "@/lib/project-colors";
 
 interface Post {
@@ -25,6 +26,10 @@ interface Post {
   project_id?: string;
   ai_help_score?: number | null;
   time_saved?: string | null;
+  og_title?: string | null;
+  og_description?: string | null;
+  og_image?: string | null;
+  og_site_name?: string | null;
   profiles?: {
     username: string;
     level?: number;
@@ -570,15 +575,13 @@ export function FeedList({ posts, stats, currentUserId, isAdmin, initialSearch, 
               )}
 
               {post.link_url && (
-                <a
-                  href={post.link_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center text-sm text-[#58a6ff] hover:underline"
-                >
-                  <span className="material-symbols-outlined text-base mr-1">link</span>
-                  결과물 보러가기
-                </a>
+                <LinkPreviewCard
+                  url={post.link_url}
+                  title={post.og_title}
+                  description={post.og_description}
+                  image={post.og_image}
+                  siteName={post.og_site_name}
+                />
               )}
 
               <div className="flex items-center gap-6 pt-2 border-t border-[#30363d]/50 mt-1">
