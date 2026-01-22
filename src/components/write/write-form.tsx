@@ -468,7 +468,7 @@ export function WriteForm({ projects, initialProjectId }: WriteFormProps) {
         {/* Submit Button */}
         <motion.button
           type="submit"
-          disabled={loading || !selectedCategory || !selectedProjectId || aiHelpScore === null || !timeSaved}
+          disabled={loading || !selectedCategory || aiHelpScore === null || !timeSaved}
           className="w-full bg-gradient-to-r from-[#2ea043] to-[#3fb950] hover:from-[#25b060] hover:to-[#34a94b] disabled:from-[#2ea043]/50 disabled:to-[#3fb950]/50 disabled:cursor-not-allowed text-white font-bold py-4 px-6 rounded-xl shadow-lg shadow-[#2ea043]/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
           whileHover={{ scale: loading ? 1 : 1.02 }}
           whileTap={{ scale: loading ? 1 : 0.98 }}
