@@ -29,17 +29,17 @@ export function BottomNav() {
           <span className="text-[10px] font-medium">Home</span>
         </Link>
 
-        {/* Projects */}
+        {/* Leaderboard */}
         <Link
-          href="/projects"
+          href="/leaderboard"
           className={`flex flex-col items-center justify-center w-full gap-1 group transition-colors ${
-            pathname.startsWith("/projects") ? "text-[#2ea043]" : "text-[#8b949e] hover:text-[#e6edf3]"
+            pathname === "/leaderboard" ? "text-[#2ea043]" : "text-[#8b949e] hover:text-[#e6edf3]"
           }`}
         >
           <span className="material-symbols-outlined text-[24px] group-hover:scale-110 transition-transform">
-            folder
+            leaderboard
           </span>
-          <span className="text-[10px] font-medium">Projects</span>
+          <span className="text-[10px] font-medium">Ranking</span>
         </Link>
 
         {/* Center FAB */}

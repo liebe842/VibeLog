@@ -1,26 +1,81 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
+import Link from "next/link";
 import { ProfileEditModal } from "./profile-edit-modal";
 import { SettingsDropdown } from "./settings-dropdown";
+import { deletePost, likePost, getPostLikers } from "@/lib/actions/posts";
+import { getComments } from "@/lib/actions/comments";
+import { CommentSection } from "@/components/comments/comment-section";
+import { PostEditModal } from "@/components/feed/post-edit-modal";
+import { getProjectColor } from "@/lib/project-colors";
+
+interface Post {
+  id: string;
+  content: string;
+  category: string;
+  duration_min: number;
+  link_url?: string;
+  image_url?: string;
+  likes: number;
+  comments_count: number;
+  created_at: string;
+  user_id: string;
+  liked_by_user?: boolean;
+  project_id?: string;
+  ai_help_score?: number | null;
+  time_saved?: string | null;
+  profiles?: {
+    username: string;
+    level?: number;
+    avatar_url?: string;
+  };
+  projects?: {
+    id: string;
+    title: string;
+    color?: string;
+    icon?: string;
+  };
+}
 
 interface ProfileContentProps {
   profile: any;
   stats: any;
-  recentActivities: any[];
+  posts: Post[];
   streakDays: any[];
+  currentUserId?: string;
 }
 
-const categoryColors: Record<string, string> = {
-  Coding: "bg-blue-500/20 text-blue-400",
-  Study: "bg-purple-500/20 text-purple-400",
-  Debug: "bg-orange-500/20 text-orange-400",
+const categoryBorderColors: Record<string, string> = {
+  Planning: "border-l-blue-500",
+  Development: "border-l-green-500",
+  Design: "border-l-purple-500",
+  Debug: "border-l-orange-500",
+  Other: "border-l-gray-500",
+  Coding: "border-l-blue-500",
+  Study: "border-l-purple-500",
 };
 
-const categoryIcons: Record<string, string> = {
-  Coding: "code_blocks",
-  Study: "menu_book",
-  Debug: "bug_report",
+const categoryBadgeColors: Record<string, string> = {
+  Planning: "border-blue-500/30 text-blue-400 bg-blue-500/10",
+  Development: "border-green-500/30 text-green-400 bg-green-500/10",
+  Design: "border-purple-500/30 text-purple-400 bg-purple-500/10",
+  Debug: "border-orange-500/30 text-orange-400 bg-orange-500/10",
+  Other: "border-gray-500/30 text-gray-400 bg-gray-500/10",
+  Coding: "border-blue-500/30 text-blue-400 bg-blue-500/10",
+  Study: "border-purple-500/30 text-purple-400 bg-purple-500/10",
+};
+
+const categoryLabels: Record<string, string> = {
+  Planning: "기획 및 PRD 작성",
+  Development: "핵심 기능 구현",
+  Design: "UI 디자인 및 개선",
+  Debug: "디버깅 및 배포",
+  Other: "기타",
+  Coding: "코딩",
+  Study: "공부",
 };
 
 function formatTimeAgo(dateString: string) {
@@ -31,11 +86,152 @@ function formatTimeAgo(dateString: string) {
   if (diffInSeconds < 60) return "방금 전";
   if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}분 전`;
   if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}시간 전`;
-  return `${Math.floor(diffInSeconds / 86400)}일 전`;
+  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}일 전`;
+  return date.toLocaleDateString("ko-KR");
 }
 
-export function ProfileContent({ profile, stats, recentActivities, streakDays }: ProfileContentProps) {
+function LikeButton({
+  postId,
+  likes,
+  likedByUser,
+  onLike,
+}: {
+  postId: string;
+  likes: number;
+  likedByUser?: boolean;
+  onLike: () => void;
+}) {
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [likers, setLikers] = useState<string[] | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function handleMouseEnter() {
+    if (likes === 0) return;
+    setShowTooltip(true);
+    if (likers === null && !loading) {
+      setLoading(true);
+      const result = await getPostLikers(postId);
+      if (result.usernames) {
+        setLikers(result.usernames);
+      }
+      setLoading(false);
+    }
+  }
+
+  function handleMouseLeave() {
+    setShowTooltip(false);
+  }
+
+  return (
+    <div className="relative">
+      <motion.button
+        onClick={onLike}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        className={`flex items-center gap-1.5 transition-colors group ${
+          likedByUser ? "text-[#3fb950]" : "text-[#8b949e] hover:text-[#3fb950]"
+        }`}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+      >
+        <span className="material-symbols-outlined text-[18px] group-hover:scale-110 transition-transform">
+          thumb_up
+        </span>
+        <span className="text-xs font-medium">{likes || 0}</span>
+      </motion.button>
+      {showTooltip && likes > 0 && (
+        <div className="absolute bottom-full left-0 mb-2 z-50">
+          <div className="bg-[#21262d] border border-[#30363d] rounded-lg px-3 py-2 shadow-lg min-w-[120px]">
+            {loading ? (
+              <span className="text-[#8b949e] text-xs">로딩 중...</span>
+            ) : likers && likers.length > 0 ? (
+              <div className="flex flex-col gap-1">
+                {likers.map((username, idx) => (
+                  <span key={idx} className="text-[#e6edf3] text-xs">
+                    {username}
+                  </span>
+                ))}
+                {likes > likers.length && (
+                  <span className="text-[#8b949e] text-xs">
+                    외 {likes - likers.length}명
+                  </span>
+                )}
+              </div>
+            ) : (
+              <span className="text-[#8b949e] text-xs">좋아요 {likes}개</span>
+            )}
+          </div>
+          <div className="absolute left-4 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-[#30363d]" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function ProfileContent({ profile, stats, posts, streakDays, currentUserId }: ProfileContentProps) {
+  const router = useRouter();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [localPosts, setLocalPosts] = useState(posts);
+  const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
+  const [commentsData, setCommentsData] = useState<Record<string, any[]>>({});
+  const [editingPost, setEditingPost] = useState<Post | null>(null);
+
+  async function handleDelete(postId: string) {
+    if (!confirm("정말 삭제하시겠습니까?")) return;
+
+    const result = await deletePost(postId);
+    if (result.error) {
+      alert(result.error);
+    } else {
+      setLocalPosts((prev) => prev.filter((p) => p.id !== postId));
+      router.refresh();
+    }
+  }
+
+  async function handleLike(postId: string) {
+    const post = localPosts.find((p) => p.id === postId);
+    if (!post) return;
+
+    const wasLiked = post.liked_by_user;
+
+    setLocalPosts((prev) =>
+      prev.map((p) =>
+        p.id === postId
+          ? {
+              ...p,
+              likes: wasLiked ? p.likes - 1 : p.likes + 1,
+              liked_by_user: !wasLiked,
+            }
+          : p
+      )
+    );
+
+    const result = await likePost(postId);
+    if (result.error) {
+      alert(result.error);
+      setLocalPosts(posts);
+    } else {
+      router.refresh();
+    }
+  }
+
+  async function handleToggleComments(postId: string) {
+    const newExpanded = new Set(expandedComments);
+
+    if (newExpanded.has(postId)) {
+      newExpanded.delete(postId);
+    } else {
+      newExpanded.add(postId);
+      if (!commentsData[postId]) {
+        const result = await getComments(postId);
+        if (result.comments) {
+          setCommentsData((prev) => ({ ...prev, [postId]: result.comments || [] }));
+        }
+      }
+    }
+
+    setExpandedComments(newExpanded);
+  }
 
   return (
     <>
@@ -66,7 +262,7 @@ export function ProfileContent({ profile, stats, recentActivities, streakDays }:
           <div className="mt-4 text-center">
             <h2 className="text-2xl font-bold leading-tight text-[#e6edf3]">{profile.username}</h2>
             <p className="text-[#8b949e] text-sm font-medium mt-1">
-              {profile.bio || "Developer"} • {stats.total_logs || 0}h Logged
+              {profile.bio || "Developer"} • {stats.total_logs || 0} Logs
             </p>
           </div>
         </section>
@@ -121,62 +317,135 @@ export function ProfileContent({ profile, stats, recentActivities, streakDays }:
           </div>
         </section>
 
-        {/* History Section */}
-        <section className="flex flex-col px-4 gap-6">
+        {/* History Section - Feed Style */}
+        <section className="flex flex-col px-4 gap-4">
           <div className="flex items-center justify-between px-1">
             <h3 className="text-lg font-bold text-white">History</h3>
-            <button className="text-sm font-semibold text-[#2ea043]">View All</button>
+            <span className="text-sm text-[#8b949e]">{localPosts.length}개</span>
           </div>
 
-          <div className="relative">
-            <div className="mb-6">
-              <h4 className="text-xs font-bold text-[#8b949e] uppercase tracking-wider mb-3 pl-1">
-                Recent
-              </h4>
-              <div className="flex flex-col gap-3">
-                {recentActivities.length === 0 ? (
-                  <div className="bg-[#161b22] p-4 rounded-xl border border-[#30363d] text-center text-[#8b949e]">
-                    아직 활동 기록이 없습니다.
-                  </div>
-                ) : (
-                  recentActivities.map((activity: any) => (
-                    <div
-                      key={activity.id}
-                      className="bg-[#161b22] p-4 rounded-xl border border-[#30363d] flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                            categoryColors[activity.category] || "bg-gray-500/20 text-gray-400"
-                          }`}
-                        >
-                          <span className="material-symbols-outlined text-[20px]">
-                            {categoryIcons[activity.category] || "code"}
+          {localPosts.length === 0 ? (
+            <div className="bg-[#161b22] p-6 rounded-xl border border-[#30363d] text-center text-[#8b949e]">
+              아직 활동 기록이 없습니다.
+            </div>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {localPosts.map((post) => (
+                <motion.article
+                  key={post.id}
+                  className={`bg-[#161b22] border border-[#30363d] ${categoryBorderColors[post.category]} border-l-4 rounded-md p-4 flex flex-col gap-3`}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-[#21262d] border border-[#30363d] flex items-center justify-center text-[#e6edf3] font-bold overflow-hidden">
+                        {post.profiles?.avatar_url ? (
+                          <img src={post.profiles.avatar_url} alt={post.profiles.username} className="w-full h-full object-cover" />
+                        ) : (
+                          post.profiles?.username?.[0] || "U"
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[#e6edf3] text-sm font-semibold">
+                            {post.profiles?.username || "Unknown"}
                           </span>
+                          <span className="w-1 h-1 bg-[#8b949e] rounded-full" />
+                          <span className="text-[#8b949e] text-xs">{formatTimeAgo(post.created_at)}</span>
                         </div>
-                        <div className="flex flex-col">
-                          <span className="text-sm font-bold text-white line-clamp-1">
-                            {activity.content.substring(0, 30)}
-                            {activity.content.length > 30 ? "..." : ""}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`text-xs px-2 py-0.5 rounded-full border ${categoryBadgeColors[post.category] || "bg-[#8b949e]/10 text-[#8b949e] border-[#8b949e]/30"}`}>
+                            {categoryLabels[post.category] || post.category}
+                            {post.duration_min > 0 && ` (${post.duration_min}분)`}
                           </span>
-                          <span className="text-xs text-[#8b949e]">
-                            {activity.category} • {formatTimeAgo(activity.created_at)}
-                          </span>
+                          {post.projects && post.projects.title !== "미분류" && (() => {
+                            const projectColor = getProjectColor(post.projects.color || "gray");
+                            return (
+                              <Link
+                                href={`/projects/${post.projects.id}`}
+                                className={`text-xs px-2 py-0.5 rounded-full border-2 inline-flex items-center gap-1 hover:scale-105 transition-transform ${projectColor.border} ${projectColor.bgLight}`}
+                              >
+                                <span>{post.projects.icon || "📁"}</span>
+                                <span>{post.projects.title}</span>
+                              </Link>
+                            );
+                          })()}
                         </div>
                       </div>
-                      {activity.duration_min > 0 && (
-                        <div className="bg-[#0d1117] px-2.5 py-1 rounded-md border border-[#30363d]">
-                          <span className="text-xs font-bold text-[#e6edf3]">
-                            {activity.duration_min}m
-                          </span>
-                        </div>
-                      )}
                     </div>
-                  ))
-                )}
-              </div>
+                    {currentUserId === post.user_id && (
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => setEditingPost(post)}
+                          className="text-[#8b949e] hover:text-[#58a6ff] transition-colors p-1"
+                          aria-label="Edit post"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">edit</span>
+                        </button>
+                        <button
+                          onClick={() => handleDelete(post.id)}
+                          className="text-[#8b949e] hover:text-[#f85149] transition-colors p-1"
+                          aria-label="Delete post"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">delete</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <p className="text-[#e6edf3] text-sm leading-relaxed whitespace-pre-wrap">{post.content}</p>
+
+                  {post.image_url && (
+                    <img
+                      src={post.image_url}
+                      alt="Post image"
+                      className="rounded-md max-w-full h-auto border border-[#30363d]"
+                    />
+                  )}
+
+                  {post.link_url && (
+                    <a
+                      href={post.link_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center text-sm text-[#58a6ff] hover:underline"
+                    >
+                      <span className="material-symbols-outlined text-base mr-1">link</span>
+                      결과물 보러가기
+                    </a>
+                  )}
+
+                  <div className="flex items-center gap-6 pt-2 border-t border-[#30363d]/50 mt-1">
+                    <LikeButton
+                      postId={post.id}
+                      likes={post.likes}
+                      likedByUser={post.liked_by_user}
+                      onLike={() => handleLike(post.id)}
+                    />
+                    <motion.button
+                      onClick={() => handleToggleComments(post.id)}
+                      className="flex items-center gap-1.5 text-[#8b949e] hover:text-[#58a6ff] transition-colors group"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <span className="material-symbols-outlined text-[18px] group-hover:scale-110 transition-transform">chat_bubble</span>
+                      <span className="text-xs font-medium">{post.comments_count || 0}</span>
+                    </motion.button>
+                  </div>
+
+                  {/* Comments Section */}
+                  {expandedComments.has(post.id) && (
+                    <CommentSection
+                      postId={post.id}
+                      comments={commentsData[post.id] || []}
+                      currentUserId={currentUserId}
+                    />
+                  )}
+                </motion.article>
+              ))}
             </div>
-          </div>
+          )}
         </section>
       </div>
 
@@ -190,6 +459,31 @@ export function ProfileContent({ profile, stats, recentActivities, streakDays }:
           avatar_url: profile.avatar_url,
         }}
       />
+
+      {/* Post Edit Modal */}
+      {editingPost && (
+        <PostEditModal
+          isOpen={!!editingPost}
+          onClose={() => {
+            setEditingPost(null);
+            setTimeout(() => {
+              router.refresh();
+            }, 100);
+          }}
+          post={{
+            id: editingPost.id,
+            content: editingPost.content,
+            category: editingPost.category,
+            duration_min: editingPost.duration_min,
+            link_url: editingPost.link_url,
+            image_url: editingPost.image_url,
+            project_id: editingPost.project_id,
+            ai_help_score: editingPost.ai_help_score,
+            time_saved: editingPost.time_saved,
+          }}
+          projects={[]}
+        />
+      )}
     </>
   );
 }

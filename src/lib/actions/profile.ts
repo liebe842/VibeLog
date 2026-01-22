@@ -231,6 +231,89 @@ export async function updateProfile(data: {
   return { success: true };
 }
 
+export async function getUserProfileById(userId: string) {
+  const supabase = await createClient();
+
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", userId)
+    .single();
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  // Get actual post count from database
+  const { count: postCount } = await supabase
+    .from("posts")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", userId);
+
+  // Update profile with actual count
+  if (profile && profile.stats) {
+    profile.stats.total_logs = postCount || 0;
+  }
+
+  return { profile };
+}
+
+export async function getUserPostsWithProfiles(userId: string) {
+  const supabase = await createClient();
+
+  // Get current user for like status
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { data: posts, error } = await supabase
+    .from("posts")
+    .select(
+      `
+      *,
+      profiles:user_id (
+        username,
+        level,
+        avatar_url
+      ),
+      projects:project_id (
+        id,
+        title,
+        color,
+        icon
+      )
+    `
+    )
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  // If user is logged in, check which posts they liked
+  if (user && posts) {
+    const postIds = posts.map((p: any) => p.id);
+    const { data: likes } = await supabase
+      .from("likes")
+      .select("post_id")
+      .eq("user_id", user.id)
+      .in("post_id", postIds);
+
+    const likedPostIds = new Set(likes?.map((l) => l.post_id) || []);
+
+    const postsWithLikeStatus = posts.map((post: any) => ({
+      ...post,
+      liked_by_user: likedPostIds.has(post.id),
+      likes: post.likes_count || post.likes || 0,
+    }));
+
+    return { posts: postsWithLikeStatus, currentUserId: user.id };
+  }
+
+  return { posts, currentUserId: user?.id };
+}
+
 export async function uploadAvatar(formData: FormData) {
   const supabase = await createClient();
 
